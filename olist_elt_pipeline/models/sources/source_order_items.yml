@@ -1,0 +1,94 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "order_items"]
+    tables:
+      - name: order_items
+        description: >
+          Raw data about individual items within each customer order.
+          Each row represents a specific product in a customer's order.
+          A single order can include multiple products, hence the composite key of (order_id, order_item_id).
+
+        columns:
+          - name: order_id
+            description: >
+              🔑 Foreign key linking this item to an order. Allow duplicates due to multiple items in one order.
+              🎯 Expected: varchar, not null.
+              📊 Used to group and aggregate items by order.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_item_id
+            description: >
+              🔢 Sequential number identifying the item's position in the order.
+              🎯 Expected: int, min 1, not null.
+              📊 Used to distinguish items within the same order.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_id
+            description: >
+              🔑 Foreign key linking to the product being purchased.
+                  Allow duplicate due to the product can be bought by multiple customers.
+              🎯 Expected: varchar, not null.
+              📊 Used to analyze product-level sales and performance.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: seller_id
+            description: >
+              🔑 Foreign key linking to the seller who sold the product.
+                  Allow duplicate due to the seller can sell for multiple customers.
+              🎯 Expected: varchar, not null.
+              📊 Used for seller performance and revenue tracking.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: shipping_limit_date
+            description: >
+              ⏰ Deadline date/time before which the seller should ship the product.
+              🎯 Expected: timestamp, not null.
+              📊 Used to measure delivery SLAs and timeliness.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: price
+            description: >
+              💰 Sale price of the item (BRL). Item price should be > 0.00
+              🎯 Expected: numeric(18,2), min 0.01, not null.
+              📊 Used to calculate item-level revenue.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: freight_value
+            description: >
+              🚚 Shipping fee charged to the customer for this item. Shipping fee may be discounted. 
+              🎯 Expected: numeric(18,2), min 0.00, not null.
+              📊 Used for total revenue and delivery cost calculations.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          # Ensure data quality and integrity
+          - dbt_utils.unique_combination_of_columns:
+              name: unique_order_item_per_order
+              combination_of_columns: ["order_id", "order_item_id"]
+              severity: warn
+
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              min_value: 1000
+              severity: warn

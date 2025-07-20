@@ -1,0 +1,200 @@
+version: 2
+
+models:
+  - name: int_revenue_base
+    description: >
+      🧮 Intermediate model joining orders, items, and payments at the item level.
+      🔁 Each row represents a single item in an order (not unique per order).
+      📦 Used as the foundation for revenue, churn, and payment-based fact models.
+    tags: ["intermediate", "revenue_base"]
+    columns:
+      - name: order_id
+        description: >
+          🔐 ID of the order (can appear multiple times).
+          🎯 Expected: not null.
+          📊 Used to group revenue, track customer and payment history.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: customer_id
+        description: >
+          👤 ID of the customer placing the order.
+          🎯 Expected: not null.
+          📊 Supports customer segmentation, churn tracking, and LTV metrics.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: order_item_id
+        description: >
+          🔢 Sequence number of the item in the order (e.g., 1st, 2nd item).
+          🎯 Expected: not null.
+          📊 Helps differentiate product lines in multi-item orders.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: product_id
+        description: >
+          🛍️ ID of the product.
+          🎯 Expected: not null.
+          📊 Used to analyze top-selling products and product-level revenue.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: seller_id
+        description: >
+          🧑‍💼 ID of the seller.
+          🎯 Expected: not null.
+          📊 Enables analysis by seller or region in downstream dashboards.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: order_status
+        description: >
+          📦 Current status of the order (e.g. delivered, shipped, canceled).
+          🎯 Expected: not null.
+          📊 Helps filter valid orders and analyze fulfillment KPIs.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: order_purchase_ts
+        description: >
+          ⏰ Timestamp when the order was placed.
+          🎯 Expected: not null.
+          📊 Used to analyze order trends by exact datetime.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: order_approved_ts
+        description: >
+          ⏰ Timestamp when the order was approved by the system or manually.
+              May be null if approval was not recorded. Flagged via `is_missing_order_approved_ts`.
+          🎯 Expected: not null.
+          📊 Useful for measuring approval delays. May be missing.
+        tests:
+          - not_null:
+              severity: warn
+
+      - name: order_delivered_carrier_ts
+        description: >
+          🚚 Date the seller handed over the order to the logistics provider.
+              May be null if approval was not recorded. Flagged via `is_missing_order_delivered_carrier_ts`.
+          🎯 Expected: not null.
+          📊 Used to analyze SLA compliance. May be missing.
+        tests:
+          - not_null:
+              severity: warn
+
+      - name: order_delivered_customer_ts
+        description: >
+          🏠 Date when the order was delivered to the end customer.
+              May be null if approval was not recorded. Flagged via `is_missing_order_delivered_customer_ts`.
+          🎯 Expected: not null.
+          📊 Enables actual delivery duration analysis. May be missing.
+        tests:
+          - not_null:
+              severity: warn
+
+      - name: order_estimated_delivery_date
+        description: >
+          📅 Estimated delivery date promised to the customer at checkout.
+              May be null if approval was not recorded. Flagged via `is_missing_order_estimated_delivery_date`.
+          🎯 Expected: not null.
+          📊 Used to compute delays or on-time delivery rate. May be missing.
+
+      - name: order_purchase_date
+        description: >
+          📅 Date (truncated) version of order_purchase_ts.
+          🎯 Expected: date, not null.
+          📊 Used for joining with `dim_dates` to support flexible time filters (year, month, quarter, day).
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date # Must match with data type in Snowflake.
+              severity: error
+
+      - name: payment_type
+        description: >
+          💳 Payment method used (e.g., credit_card, boleto, voucher).
+              Already strictly validated in `stg_order_payments`.
+          🎯 Expected: not null.
+          📊 Supports payment behavior analysis and preference insights.
+
+      - name: payment_installments
+        description: >
+          🧾 Number of installments chosen by the customer. If the customer pays in full at once time, it will be 0.
+              Already strictly validated in `stg_order_payments`.
+          🎯 Expected: min 0, not null.
+          📊 Helps classify buy-now-pay-later vs. upfront payments.
+
+      - name: payment_value
+        description: >
+          💰 Monetary amount of the payment (in BRL). Payment value can be 0 in cases such as full voucher use or order cancellation.
+              Already strictly validatedin `stg_order_payments`.
+          🎯 Expected: min 0.00, not null.
+          📊 Used as primary revenue value if present.
+
+      - name: total_revenue
+        description: >
+          💲 Final revenue for this item. Used in all downstream revenue aggregations.
+          🎯 Expected: numeric(30, 2), min 0.00, not null.
+          📊 Derived from payment_value if available, else fallback to price + freight.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(30,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error
+
+      - name: price
+        description: >
+          💰 Sale price of the item (BRL). Item price should be > 0.00.
+              Already strictly validated in `stg_order_items`.
+          🎯 Expected: min 0.01, not null.
+          📊 Used to estimate revenue when payment is unavailable.
+
+      - name: freight_value
+        description: >
+          🚚 Shipping fee charged to the customer for this item. Shipping fee may be discounted.
+              Already strictly validated in `stg_order_items`.
+          🎯 Expected: min 0.00, not null.
+          📊 Included in fallback revenue when payment data is missing.
+
+      - name: is_missing_order_approved_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_approved_ts is missing (true = missing).
+                    Already strictly validated in `stg_orders`.
+          📊 Used to track completeness of order approved timestamp.
+
+      - name: is_missing_order_delivered_carrier_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_delivered_carrier_ts is missing (true = missing).
+                    Already strictly validated in `stg_orders`.
+          📊 Used for SLA tracking and fulfillment lag metrics.
+
+      - name: is_missing_order_delivered_customer_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_delivered_customer_ts is missing (true = missing).
+                    Already strictly validated in `stg_orders`.
+          📊 Used for delivery lead time and churn signals.
+
+      - name: is_missing_order_estimated_delivery_date
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_estimated_delivery_date is missing (true = missing).
+                    Already strictly validated in `stg_orders`.
+          📊 Used to measure delivery performance (promised vs actual).
+
+      - name: is_duplicate_order_item_sk
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_item_sk is duplicate (true = duplicate).
+          📊 Kept for traceability and data quality auditing.

@@ -1,0 +1,157 @@
+version: 2
+
+models:
+  - name: stg_order_reviews
+    description: >
+      Staging model for order reviews. This table has been casted and cleaned from the raw source.
+      Each row represents a single customer review for a completed order.
+      Used to analyze customer satisfaction, review behavior, and support future NLP or churn prediction use cases.
+    tags: ["staging", "order_reviews"]
+    columns:
+      - name: review_id
+        description: >
+          🔐 Primary key uniquely identifying each review. One review only for one order so will use `review_order_sk` to indentify unique.
+          🎯 Expected: varchar, not null.
+          📊 Used as the identifier for individual customer reviews.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: order_id
+        description: >
+          🔑 Foreign key linking the review to a specific order. One review only for one order so will use `review_order_sk` to indentify unique.
+          🎯 Expected: varchar, not null, unique, relationship to `stg_orders` table with `order_id` column.
+          📊 Used to associate customer reviews with corresponding orders.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: review_score
+        description: >
+          🌟 Integer score from 1 to 5 given by the customer.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: int, min 1, max 5, not null.
+          📊 Used to analyze customer satisfaction.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 5
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+
+      - name: is_missing_review_score
+        description: >
+          🟢 / 🔴 Boolean flag to indicate review_score is missing (true = missing).
+          📊 Used to track completeness of review score in `stg_reviews` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: review_comment_title
+        description: >
+          📝 Optional title of the customer's review.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Provides summary of customer sentiment.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_review_comment_title
+        description: >
+          🟢 / 🔴 Boolean flag to indicate review_comment_title is missing (true = missing).
+          📊 Used to track completeness of review comment title in `stg_reviews` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: review_comment_message
+        description: >
+          💬 Optional message of the customer's review.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Used for customer feedback analysis.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_review_comment_message
+        description: >
+          🟢 / 🔴 Boolean flag to indicate review_comment_message is missing (true = missing).
+          📊 Used to track completeness of review comment message in `stg_reviews` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: review_creation_date
+        description: >
+          📅 Date the review was created by the customer.
+          🎯 Expected: date, not null.
+          📊 Used to track review submission patterns over time.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date # Must match with data type in Snowflake.
+              severity: error
+
+      - name: review_answer_ts
+        description: >
+          ⏲️ Timestamp when the seller or system responded to the review.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: timestamp, not null.
+          📊 Used to measure response latency and engagement.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: is_missing_review_answer_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate review_answer_ts is missing (true = missing).
+          📊 Used to track completeness of review answer timestamp in `stg_reviews` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error

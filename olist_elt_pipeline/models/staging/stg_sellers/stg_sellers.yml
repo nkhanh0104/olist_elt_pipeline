@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  - name: stg_sellers
+    description: >
+      Staging model for sellers. This table has been casted and cleaned from the raw source.
+      Each row represents a seller, including their location information.
+      Used for building revenue analysis and seller-level aggregation in marts.
+    tags: ["staging", "sellers"]
+    columns:
+      - name: seller_id
+        description: >
+          🔐 Unique identifier for the seller.
+          🎯 Expected: varchar, not null and unique.
+          📊 Used as the primary key and foreign key in `stg_order_items`.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_duplicate_seller_id
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_id is duplicate (true = duplicate).
+          📊 Used to identify duplicate seller_id in `stg_sellers` for trace if necessary.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: seller_zip_code_prefix
+        description: >
+          📮 First 5 digits of the seller's ZIP code.
+              Just warning not null DA/DS will handle in mart but in this case already have city and state so it will not be used in mart.
+          🎯 Expected: varchar, not null.
+          📊 Retained for lineage, not used in mart layer.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_seller_zip_code_prefix
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_zip_code_prefix is missing (true = missing).
+          📊 Used to track completeness of seller zip code prefix in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_seller_zip_code_prefix
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_zip_code_prefix is duplicate (true = duplicate).
+          📊 Used to identify duplicate seller zip code prefix in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: seller_city
+        description: >
+          🏙️ City of the seller in Brazil (2-letter).
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Useful for regional sales breakdowns.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_seller_city
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_city is missing (true = missing).
+          📊 Used to track completeness of seller city in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_seller_city
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_city is duplicate (true = duplicate).
+          📊 Used to identify duplicate seller city in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: seller_state
+        description: >
+          🗺️ State of the seller in Brazil (2-letter).
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Helps with state-wise distribution and mapping.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_seller_state
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_state is missing (true = missing).
+          📊 Used to retain rows with incomplete seller_state in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_seller_state
+        description: >
+          🟢 / 🔴 Boolean flag to indicate seller_state is duplicate (true = duplicate).
+          📊 Used to identify duplicate seller state in `stg_sellers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error

@@ -1,0 +1,102 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "orders"]
+    tables:
+      - name: orders
+        description: >
+          Raw data about all customer orders placed on the Olist platform.
+          Each row represents one unique order made by a customer.
+          Orders can have different statuses, and timestamps are tracked at each stage of the order lifecycle.
+
+        columns:
+          - name: order_id
+            description: >
+              🔐 Unique identifier for each order.
+              🎯 Expected: varchar, not null and unique.
+              📊 Used as the primary key and foreign key in multiple tables including `order_items`, `order_payments`, `order_reviews`.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: customer_id
+            description: >
+              🔑 Foreign key linking the order to the customer who placed it.
+              🎯 Expected: varchar, not null.
+              📊 Used to track customer behavior and lifetime value.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_status
+            description: >
+              📦 Current status of the order (e.g., delivered, shipped, canceled).
+                  Can disscuss with DA/DS to filter specific order_status or they will handle in mart.
+              🎯 Expected: varchar, not null.
+              📊 Used for calculating fulfillment rates and customer satisfaction metrics.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_purchase_timestamp
+            description: >
+              ⏰ Timestamp when the customer placed the order.
+              🎯 Expected: timestamp, not null.
+              📊 Used to track order creation trends and conversion rates.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_approved_at
+            description: >
+              ⏰ Timestamp when the order was approved by the system or manually.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: timestamp, not null.
+              📊 Used to measure time between purchase and approval for operational KPIs.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_delivered_carrier_date
+            description: >
+              🚚 Date the seller handed over the order to the logistics provider.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: timestamp, not null.
+              📊 Used to measure SLA compliance from seller to delivery handoff.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_delivered_customer_date
+            description: >
+              🏠 Date when the order was delivered to the end customer.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: timestamp, not null.
+              📊 Used for measuring actual delivery time.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: order_estimated_delivery_date
+            description: >
+              📅 Estimated delivery date promised to the customer at checkout.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: date, not null.
+              📊 Used for calculating on-time delivery rate.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              min_value: 1000
+              severity: warn

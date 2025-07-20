@@ -1,0 +1,163 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: >
+      Staging model for order data. This table has been casted and cleaned from the raw source `orders`. 
+      Each row represents an order placed on the Olist platform and contains timestamps of different order stages. 
+      Used for analysis of order processing, delivery times, and status breakdowns in marts.
+    tags: ["staging", "orders"]
+    columns:
+      - name: order_id
+        description: >
+          🔐 Unique identifier for each order.
+          🎯 Expected: varchar, not null and unique.
+          📊 Used as the primary key and foreign key in multiple tables including `stg_order_items`, `stg_order_payments`, `stg_order_reviews`.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: customer_id
+        description: >
+          🔑 Foreign key linking the order to the customer who placed it.
+          🎯 Expected: varchar, not null.
+          📊 Used to track customer behavior and lifetime value.
+        tests:
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: order_status
+        description: >
+          📦 Current status of the order (e.g., delivered, shipped, canceled).
+          🎯 Expected: varchar, not null.
+          📊 Used for calculating fulfillment rates and customer satisfaction metrics.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: order_purchase_ts
+        description: >
+          ⏰ Timestamp when the customer placed the order.
+          🎯 Expected: timestamp, not null.
+          📊 Used to track order creation trends and conversion rates.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: order_approved_ts
+        description: >
+          ⏰ Timestamp when the order was approved by the system or manually.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: timestamp, not null.
+          📊 Used to measure time between purchase and approval for operational KPIs.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: is_missing_order_approved_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_approved_ts is missing (true = missing).
+          📊 Used to track completeness of order approved timestamp `stg_orders` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: order_delivered_carrier_ts
+        description: >
+          🚚 Date the seller handed over the order to the logistics provider.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: timestamp, not null.
+          📊 Used to measure SLA compliance from seller to delivery handoff.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: is_missing_order_delivered_carrier_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_delivered_carrier_ts is missing (true = missing).
+          📊 Used to track completeness of order delivered carrier timestamp `stg_orders` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: order_delivered_customer_ts
+        description: >
+          🏠 Date when the order was delivered to the end customer.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: timestamp, not null.
+          📊 Used for measuring actual delivery time.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: is_missing_order_delivered_customer_ts
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_delivered_customer_ts is missing (true = missing).
+          📊 Used to track completeness of order delivered customer timestamp `stg_orders` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: order_estimated_delivery_date
+        description: >
+          📅 Estimated delivery date promised to the customer at checkout.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: date, not null.
+          📊 Used for calculating on-time delivery rate.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date # Must match with data type in Snowflake.
+              severity: error
+
+      - name: is_missing_order_estimated_delivery_date
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_estimated_delivery_date is missing (true = missing).
+          📊 Used to track completeness of order estimated delivery date in `stg_orders` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error

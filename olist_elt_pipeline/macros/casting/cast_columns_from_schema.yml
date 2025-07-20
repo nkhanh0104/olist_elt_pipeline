@@ -1,0 +1,34 @@
+version: 2
+
+macros:
+  - name: casting.cast_columns_from_schema
+    description: >
+      🎯 Generate a list of casted columns from a schema definition map with optional aliases.
+      Useful for applying consistent data typing and naming conventions in staging or marts.
+
+      📌 Best practice:
+        - Use this macro with a well-defined schema map for casting & aliasing columns consistently.
+        - Leverage `table_alias` to avoid ambiguity when joining multiple tables.
+        - Prefer nested dicts in schema map when needing both type and alias.
+
+      🧠 Example schema_map:
+        {
+          "price": "numeric(9,2)",
+          "freight_value": {"type": "numeric(9,2)", "alias": "shipping_fee"},
+          "order_approved_at": {"type": "timestamp", "alias": "order_approved_ts"}
+        }
+    tags: ["casting", "schema_map", "macro_utils"]
+    arguments:
+      - name: schema_map
+        type: object
+        description: >
+          🎯 Dictionary mapping source columns to data types and optional aliases.
+          Supports:
+            - Simple key-value (e.g., `"col": "type"`)
+            - Nested format: `"col": {"type": "type", "alias": "alias_name"}`
+
+      - name: table_alias
+        type: string
+        description: >
+          🎯 Optional. Prefix for column names (e.g., `s.col`). Helps disambiguate in joins.
+          If omitted, column names are used as-is.

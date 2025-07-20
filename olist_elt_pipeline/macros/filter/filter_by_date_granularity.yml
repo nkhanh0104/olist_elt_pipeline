@@ -1,0 +1,60 @@
+version: 2
+
+macros:
+  - name: filter_by_date_granularity
+    description: >
+      🧠 Macro to generate a dynamic `WHERE` clause that filters `dim_dates` by year, quarter, month, and day
+      based on runtime `var()` inputs. It helps ensure consistent filtering logic across multiple fact models
+      (e.g., revenue, churn, payments) without manual date slicing.
+
+      ✅ Supports flexible granularity filtering based on vars:
+        - year (required for all granularities)
+        - quarter (mutually exclusive with month/day)
+        - month (must accompany year)
+        - day (must accompany month and year)
+
+      🛡️ Includes compiler-level validation to prevent invalid combinations (e.g., quarter + month, or day without month).
+
+      📊 Use in conjunction with `dim_dates` to support dashboards that need dynamic date filters via Metabase or Airflow.
+
+    tags: ["macro", "date_filter", "reusable", "dim_dates"]
+    arguments:
+      - name: date_dim_alias
+        type: string
+        description: >
+          🏷️ Alias name used in the SQL query for `dim_dates` (e.g., 'd').
+
+      - name: year
+        type: integer (via var)
+        description: 🎯 Required. Year to filter by. Must be positive.
+
+      - name: month
+        type: integer (via var)
+        description: 🎯 Optional. Month (1-12). Cannot be used with quarter.
+
+      - name: quarter
+        type: integer (via var)
+        description: 🎯 Optional. Quarter (1-4). Cannot be used with month or day.
+
+      - name: day
+        type: integer (via var)
+        description: 🎯 Optional. Day (1-31). Must be used with month.
+
+    examples:
+      - name: cli_example_year_month_day
+        description: >
+          ✅ Run with CLI to filter by full date (year, month, day):
+        code: |
+          dbt run --select fct_revenue_by_state --vars '{year: 2018, month: 7, day: 15}'
+
+      - name: cli_example_quarter_only
+        description: >
+          ✅ Run with CLI to filter by quarter:
+        code: |
+          dbt run --select fct_revenue_by_state --vars '{year: 2018, quarter: 2}'
+
+      - name: cli_error_invalid_combo
+        description: >
+          ❌ Invalid: quarter and month/day used together → raises compiler error:
+        code: |
+          dbt run --vars '{year: 2018, quarter: 3, month: 7}'

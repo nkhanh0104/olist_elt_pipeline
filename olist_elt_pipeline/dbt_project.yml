@@ -1,0 +1,62 @@
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: "olist_elt_pipeline"
+# This is the version of your project.
+version: "1.0.0"
+# This setting configures the version of dbt that this project is compatible with.
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: "olist_elt_pipeline"
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+docs-paths: ["docs"]
+target-path: "target"
+clean-targets: # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+flags:
+  require_explicit_package_overrides_for_builtin_materializations: false
+
+on-run-end:
+  - "{{ elementary.upload_run_results() }}"
+
+vars:
+  year: null
+  month: null
+  quarter: null
+  day: null
+  dbt_project_evaluator:
+    project_evaluator_schema: evaluator
+  elementary:
+    elementary_database: "{{ target.database }}"
+    elementary_schema: elementary
+    upload_results: true
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
+# In this example config, we tell dbt to build all models in the example/
+# directory as views. These settings can be overridden in the individual model
+# files using the `{{ config(...) }}` macro.
+models:
+  olist_elt_pipeline:
+    staging:
+      # Priority use schema in here by using custom macro
+      +schema: staging
+    marts:
+      +schema: mart
+
+seeds:
+  olist_elt_pipeline:
+    +schema: mart

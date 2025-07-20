@@ -1,0 +1,68 @@
+version: 2
+
+models:
+  - name: fct_daily_revenue
+    description: >
+      📊 Fact model aggregating revenue and order count by purchase date.
+      🧠 Supports dynamic filtering by year, month, quarter, or day via the `filter_by_date_granularity` macro.
+      ⚙️ Powered by `int_revenue_base` and `dim_dates`, this model is used in Metabase for revenue trend analysis over time.
+      ✅ Flexible for dashboards with time filter selections including year, month, quarter, day.
+    tags: ["fact", "daily_revenue"]
+    columns:
+      - name: date_day
+        description: >
+          📅 The specific calendar date of the order.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: date, not null, unique.
+          📊 Used as the base time dimension for grouping revenue.
+
+      - name: year
+        description: >
+          🔢 Year extracted from `date_day` of the order.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 2016, max 2018.
+          📊 Supports filtering and grouping charts by year.
+
+      - name: month
+        description: >
+          🔢 Month (1 to 12) extracted from `date_day` of the order.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 1, max 12.
+          📊 Supports grouping by month or monthly trends.
+
+      - name: quarter
+        description: >
+          📦 Quarter (1-4) of the order.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 1, max 4.
+          📊 Used in charts grouped by quarter.
+
+      - name: total_orders
+        description: >
+          🔢 Count of unique orders on the given date (not order items).
+          🎯 Expected: int, not null, min 1.
+          📊 Used to track daily or monthly order volume.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+
+      - name: total_revenue
+        description: >
+          💰 Total revenue collected via the payment method on that day.
+          🎯 Expected: numeric(38, 2), not null, min 0.00.
+          📊 Main metric used in revenue over time visualizations.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error

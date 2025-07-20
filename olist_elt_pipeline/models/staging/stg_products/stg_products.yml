@@ -1,0 +1,204 @@
+version: 2
+
+models:
+  - name: stg_products
+    description: >
+      Staging model for products table. This model normalizes and cleans data from the raw source,
+      ensuring all dimensions related to product metadata are valid. Each row represents a product.
+      Used in mart models to analyze product performance and category statistics.
+    tags: ["staging", "products"]
+    columns:
+      - name: product_id
+        description: >
+          🔐 Primary key representing a unique product.
+          🎯 Expected: varchar, not null, unique.
+          📊 Used as the primary key and foreign key in `stg_order_items`.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_duplicate_product_id
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_id is duplicate (true = duplicate).
+          📊 Used to identify duplicate product id in `stg_products` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: product_category_name
+        description: >
+          🗂️ Text identifier for the product's category in Portuguese.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null, relationship to `stg_stg_product_category_translation` table with `product_category_name` column.
+          📊 Used to group products by category and join with translated category names.
+        tests:
+          - not_null:
+              severity: warn
+          - relationships:
+              to: ref('stg_product_category_name_translation')
+              field: product_category_name
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_product_category_name
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_category_name is missing (true = missing).
+          📊 Used to retain rows with incomplete product_category_name for DA/DS handle in mart.
+
+      - name: product_name_length
+        description: >
+          🗂️ Length of the product name.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used to identify length of the product name.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_name_length
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_name_length is missing (true = missing).
+          📊 Used to retain rows with incomplete product_name_length for DA/DS handle in mart.
+
+      - name: product_description_length
+        description: >
+          🗂️ Length of the product description.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used to identify length of the product description.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_description_length
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_description_length is missing (true = missing).
+          📊 Used to retain rows with incomplete product_description_length for DA/DS handle in mart.
+
+      - name: product_photos_qty
+        description: >
+          📷 Number of product images available.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used to understand how product presentation might affect sales.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_photos_qty
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_photos_qty is missing (true = missing).
+          📊 Used to retain rows with incomplete product_photos_qty for DA/DS handle in mart.
+
+      - name: product_weight_g
+        description: >
+          ⚖️ Product weight in grams.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used for shipping cost estimation and inventory handling.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_weight_g
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_weight_g is missing (true = missing).
+          📊 Used to retain rows with incomplete product_weight_g for DA/DS handle in mart.
+
+      - name: product_length_cm
+        description: >
+          📏 Length of the product in centimeters.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used for logistics and volumetric calculations.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_length_cm
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_length_cm is missing (true = missing).
+          📊 Used to retain rows with incomplete product_length_cm for DA/DS handle in mart.
+
+      - name: product_height_cm
+        description: >
+          📐 Height of the product in centimeters.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used for box sizing and inventory management.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_height_cm
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_height_cm is missing (true = missing).
+          📊 Used to retain rows with incomplete product_height_cm for DA/DS handle in mart.
+
+      - name: product_width_cm
+        description: >
+          📦 Width of the product in centimeters.
+              Just warning not null and min DA/DS will handle in mart.
+          🎯 Expected: int, min 1, not null.
+          📊 Used for packaging and delivery planning.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_width_cm
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_width_cm is missing (true = missing).
+          📊 Used to retain rows with incomplete product_width_cm for DA/DS handle in mart.

@@ -1,0 +1,84 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "olist"]
+    tables:
+      - name: order_reviews
+        description: >
+          Raw review data submitted by customers after receiving their orders.
+          Each row represents a review with rating, optional title and message, and timestamps for review creation and response.
+
+        columns:
+          - name: review_id
+            description: >
+              🔐 Primary key uniquely identifying each review. One review only for one order.
+              🎯 Expected: varchar, not null, unique.
+              📊 Used as the identifier for individual customer reviews.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: order_id
+            description: >
+              🔑 Foreign key linking the review to a specific order. One review only for one order.
+              🎯 Expected: varchar, not null, unique.
+              📊 Used to associate customer reviews with corresponding orders.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: review_score
+            description: >
+              🌟 Integer score from 1 to 5 given by the customer.
+              🎯 Expected: int, min 1, max 5, not null.
+              📊 Used to analyze customer satisfaction.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: review_comment_title
+            description: >
+              📝 Optional title of the customer's review.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: varchar, not null.
+              📊 Provides summary of customer sentiment.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: review_comment_message
+            description: >
+              💬 Optional message of the customer's review.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: varchar, not null.
+              📊 Used for customer feedback analysis.
+
+          - name: review_creation_date
+            description: >
+              📅 Date the review was created by the customer.
+              🎯 Expected: date, not null.
+              📊 Used to track review submission patterns over time.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: review_answer_timestamp
+            description: >
+              ⏲️ Timestamp when the seller or system responded to the review.
+                  Just warning not null can disscuss with DA/DS to keep/remove null or they will handle in mart.
+              🎯 Expected: timestamp, not null.
+              📊 Used to measure response latency and engagement.
+            tests:
+              - not_null:
+                  severity: warn

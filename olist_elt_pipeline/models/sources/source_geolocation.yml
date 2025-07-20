@@ -1,0 +1,69 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "geolocation"]
+    tables:
+      - name: geolocation
+        description: >
+          Raw geolocation data, mapping zip code prefixes to approximate latitude and longitude.
+          Useful for mapping customer or seller locations on a map.
+          Not used directly in staging models, but can support advanced geo-analytics in marts.
+
+        columns:
+          - name: geolocation_zip_code_prefix
+            description: >
+              📮 Zip code prefix (first 5 digits) used to approximate customer/seller location.
+              🎯 Expected: varchar, not null.
+              📊 Can be used to map zip codes to lat/lng, although not unique.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: geolocation_lat
+            description: >
+              🧭 Latitude coordinate.
+              🎯 Expected: float64, in range [-90.0, 90.0], not null.
+              📊 Used for geospatial clustering and map plotting.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: geolocation_lng
+            description: >
+              🗺️ Longitude coordinate.
+              🎯 Expected: float64, in range [-180.0, 180.0], not null.
+              📊 Used for geospatial clustering and map plotting.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: geolocation_city
+            description: >
+              🏙️ City name associated with the zip code prefix.
+              🎯 Expected: varchar, not null.
+              📊 Can help enrich customer or seller profiles.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: geolocation_state
+            description: >
+              📍 State in Brazil (2-letter) (e.g., SP, RJ).
+              🎯 Expected: varchar, not null.
+              📊 Useful for regional analysis and aggregations.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              name: expect_geolocation_min_row_count
+              min_value: 1000
+              severity: warn

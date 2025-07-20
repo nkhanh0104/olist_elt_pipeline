@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "product_category_name_translation"]
+    tables:
+      - name: product_category_name_translation
+        description: >
+          Mapping table that translates product category names from Portuguese (original dataset)
+          into English. This is used to make category-level analysis easier for non-Portuguese speakers.
+          Each row represents one category mapping.
+
+        columns:
+          - name: product_category_name
+            description: >
+              🔐 Unique identifier for each product category name in Portuguese.
+              🎯 Expected: varchar, not null and unique.
+              📊 Used as the primary key and foreign key in `stg_products`.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: product_category_name_english
+            description: >
+              🌐 English translation of the product category name.
+              🎯 Expected: varchar, not null.
+              📊 Used in reporting, charts, and dashboards for non-Portuguese readers.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              min_value: 50
+              severity: warn

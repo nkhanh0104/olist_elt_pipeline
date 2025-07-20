@@ -1,0 +1,142 @@
+version: 2
+
+models:
+  - name: stg_order_items
+    description: >
+      Staging model for order items, casted and cleaned from raw source.
+      Each row represents one product item within a customer's order. You can use to analyze revenue or top product 
+      An order can include multiple items from different sellers.
+    tags: ["staging", "order_items"]
+    columns:
+      - name: order_item_sk
+        description: >
+          🔑 Surrogate key generated from `order_id`, `order_item_id` and `shipping_limit_ts` for deduplication and lineage tracking.
+          🎯 Expected: varchar, unique.
+        tags: ["sk", "strict", "quality_gate"]
+        tests:
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_duplicate_order_item_sk
+        description: >
+          🟢 / 🔴 Boolean flag to indicate order_item_sk is duplicate (true = duplicate).
+          📊 Used to identify duplicate order item sk in `stg_order_items` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: order_id
+        description: >
+          🔑 Foreign key linking this item to an order. Allow duplicates due to multiple items in one order.
+          🎯 Expected: varchar, not null, relationship to `stg_orders`` table with `order_id`` column.
+          📊 Used to group and aggregate items by order.
+        tests:
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: order_item_id
+        description: >
+          🔢 Sequence number of the item in the order (e.g., 1st, 2nd item).
+          🎯 Expected: int, min 1, not null.
+          📊 Used to distinguish items within the same order.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+
+      - name: product_id
+        description: >
+          🔑 Foreign key linking to the product being purchased.
+              Allow duplicate due to the product can be bought by multiple customers.
+          🎯 Expected: varchar, not null, relationship to `stg_products`` table with `product_id`` column.
+          📊 Used to analyze product-level sales and performance.
+        tests:
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('stg_products')
+              field: product_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: seller_id
+        description: >
+          🔑 Foreign key linking to the seller who sold the product.
+              Allow duplicate due to the seller can sell for multiple customers.
+          🎯 Expected: varchar, not null, relationship to `stg_sellers` table with `seller_id` column.
+          📊 Used for seller performance and revenue tracking.
+        tests:
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('stg_sellers')
+              field: seller_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: shipping_limit_ts
+        description: >
+          ⏰ Deadline date/time before which the seller should ship the product.
+          🎯 Expected: timestamp, not null.
+          📊 Used to measure delivery SLAs and timeliness.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: timestamp_ntz # Must match with data type in Snowflake but not include length (e.g., ❌ timestamp_ntz(9)).
+              severity: error
+
+      - name: price
+        description: >
+          💰 Sale price of the item (BRL). Item price should be > 0.00
+          🎯 Expected: numeric(18,2), min 0.01, not null.
+          📊 Used to calculate item-level revenue.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.01
+              severity: error
+
+      - name: freight_value
+        description: >
+          🚚 Shipping fee charged to the customer for this item. Shipping fee may be discounted.
+          🎯 Expected: numeric(18,2), min 0.00, not null.
+          📊 Used for total revenue and delivery cost calculations.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error

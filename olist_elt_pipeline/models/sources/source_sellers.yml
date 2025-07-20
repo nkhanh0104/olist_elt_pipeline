@@ -1,0 +1,61 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "sellers"]
+    tables:
+      - name: sellers
+        description: >
+          Raw data about sellers on the Olist platform.
+          Each row represents a seller account.
+
+        columns:
+          - name: seller_id
+            description: >
+              🔐 Unique identifier for the seller.
+              🎯 Expected: varchar, not null and unique.
+              📊 Used as the primary key and foreign key in `stg_order_items`.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: seller_zip_code_prefix
+            description: >
+              📮 First 5 digits of the seller's ZIP code.
+              🎯 Expected: varchar, not null (mostly), may have missing values.
+              📊 Historically used for geolocation, but redundant due to city/state already here.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: seller_city
+            description: >
+              🏙️ City of the seller in Brazil (2-letter).
+              🎯 Expected: varchar, not null.
+              📊 Useful for regional sales breakdowns.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: seller_state
+            description: >
+              🗺️ State of the seller in Brazil (2-letter).
+              🎯 Expected: varchar, not null.
+              📊 Helps with state-wise distribution and mapping.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              name: row_count_check_sellers
+              min_value: 1000
+              severity: warn

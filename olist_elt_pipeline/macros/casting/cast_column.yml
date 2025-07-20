@@ -1,0 +1,29 @@
+version: 2
+
+macros:
+  - name: casting.cast_column
+    description: >
+      🎯 Cast a column to a specific target type and optionally assign an alias for readability.
+
+      📌 Best practice:
+        - Only use alias inside SELECT clause.
+        - Avoid aliasing inside GROUP BY / ORDER BY / WHERE to prevent syntax errors.
+        - For those cases, consider using a version of the macro that omits the alias.
+
+      🧠 Typical usage:
+        {{ cast_column('price', 'numeric(9,2)', 'price_numeric') }}
+      Note: Only use to cast from string to specific type.
+            You can't cast from timestamp_ntz(9) to date
+    tags: ["casting", "type_conversion", "macro_utils"]
+    arguments:
+      - name: column_name
+        type: string
+        description: 🎯 Name of the column to cast (can be simple or qualified, e.g., `table.column`)
+
+      - name: target_type
+        type: string
+        description: 🎯 Target SQL type to cast to (e.g., `string`, `int`, `numeric(18,2)`, `timestamp`)
+
+      - name: alias_column_name
+        type: string
+        description: 🎯 Optional. Alias name for the output column. If omitted or `none`, uses original name.

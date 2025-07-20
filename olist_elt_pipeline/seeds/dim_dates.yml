@@ -1,0 +1,210 @@
+version: 2
+
+seeds:
+  - name: dim_dates
+    description: >
+      The `dim_date` dimension table contains one row for each day, providing
+      a comprehensive set of date-related attributes. It's pre-generated and
+      loaded as a dbt seed to ensure consistent date logic across the entire
+      data warehouse. This table serves as the primary time reference for
+      all fact tables.
+      Note: The data is followed the ISO 8601
+    tags: ["dim", "dates"]
+    columns:
+      - name: date_day
+        description: >
+          📝 The unique primary key for each day in YYYY-MM-DD format.
+          🎯 Expected: date, not null, unique.
+          📊 Used as the primary key of this dimension and foreign key in fact tables.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date
+              severity: error
+
+      - name: year
+        description: >
+          🔢 The calendar year of the date (e.g., 2016).
+          🎯 Expected: int, not null, min 2016, max 2018.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2016 # Adjust to your actual min year
+              max_value: 2018 # Adjust to your actual max year
+              severity: error
+
+      - name: month
+        description: >
+          🔢 The calendar month of the date (1-12).
+          🎯 Expected: int, not null, between 1 and 12.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 12
+              severity: error
+
+      - name: day
+        description: >
+          🔢 The day of the month (1-31).
+          🎯 Expected: Integer, not null, between 1 and 31.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 31
+              severity: error
+
+      - name: day_of_week
+        description: >
+          🔢 The day of the week, where Monday=0 and Sunday=6 (ISO standard).
+          🎯 Expected: int, not null, between 0 and 6.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 6
+              severity: error
+
+      - name: day_name
+        description: >
+          📝 The full name of the day of the week (e.g., 'Monday', 'Tuesday').
+          🎯 Expected: varchar, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set:
+                [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday",
+                  "Saturday",
+                  "Sunday",
+                ]
+              severity: error
+
+      - name: week
+        description: >
+          🔢 The ISO week number of the year (1-53). Week 1 is the first week with at least 4 days in January.
+          🎯 Expected: int, not null, between 1 and 53.
+          📊 Note: Some years (like 2015 in ISO calendar) have 53 weeks.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 53
+              severity: error
+
+      - name: quarter
+        description: >
+          🔢 The calendar quarter of the year (1-4).
+          🎯 Expected: int, not null, between 1 and 4.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 4
+              severity: error
+
+      - name: is_weekend
+        description: >
+          🟢 / 🔴 boolean flag indicating if the day is a weekend (TRUE for Saturday/Sunday, FALSE otherwise).
+          🎯 Expected: Boolean or equivalent (e.g., 0/1), not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean # Must match with data type in Snowflake
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [True, False]
+              severity: error
+
+      - name: is_month_start
+        description: >
+          🟢 / 🔴 Boolean flag indicating if the day is the first day of the month.
+          🎯 Expected: boolean or equivalent, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean # Must match with data type in Snowflake
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [True, False]
+              severity: error
+
+      - name: is_month_end
+        description: >
+          🟢 / 🔴 Boolean flag indicating if the day is the last day of the month.
+          🎯 Expected: boolean or equivalent, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean # Must match with data type in Snowflake
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [True, False]
+              severity: error
+
+      - name: is_quarter_start
+        description: >
+          🟢 / 🔴 Boolean flag indicating if the day is the first day of the quarter.
+          🎯 Expected: boolean or equivalent, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean # Must match with data type in Snowflake
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [True, False]
+              severity: error
+
+      - name: is_quarter_end
+        description: >
+          🟢 / 🔴 Boolean flag indicating if the day is the last day of the quarter.
+          🎯 Expected: boolean or equivalent, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean # Must match with data type in Snowflake
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [True, False]
+              severity: error

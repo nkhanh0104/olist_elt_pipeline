@@ -1,0 +1,160 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: >
+      Staging model for customer data, casted and cleaned from raw source.
+      Includes only useful fields for downstream consumption.
+      Each row represents one customer account. If you want to analyze real-customer behavior,
+      use `customer_unique_id` to group multiple accounts under one customer.
+      `customer_zip_code_prefix` is retained for lineage tracking, though not used in mart.
+    tags: ["staging", "customers"]
+    columns:
+      - name: customer_id
+        description: >
+          🔑 Surrogate key for a customer account.
+          🎯 Expected: varchar, not null, unique.
+          📊 Used as the foreign key in `stg_orders`.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_duplicate_customer_id
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_id is duplicate (true = duplicate).
+          📊 Used to identify duplicate customer id in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: customer_unique_id
+        description: >
+          🔐 Natural key for a real-world customer. Allow duplicate due to one customer can have multiple accounts.
+          🎯 Expected: varchar, not null.
+          📊 Used for customer-level analytics (e.g., lifetime value, churn).
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: customer_zip_code_prefix
+        description: >
+          📮 First 5 digits of the customer's ZIP code.
+              Just warning not null DA/DS will handle in mart but in this case already have city and state so it will not be used in mart.
+          🎯 Expected: varchar, not null.
+          📊 Retained for lineage, not used in mart layer.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_customer_zip_code_prefix
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_zip_code_prefix is missing (true = missing).
+          📊 Used to track completeness of customer zip code prefix in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_customer_zip_code_prefix
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_zip_code_prefix is duplicate (true = duplicate).
+          📊 Used to identify duplicate customer zip code prefix in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: customer_city
+        description: >
+          🏙️ City of the customer in Brazil.
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Used for geolocation grouping and state-level insights.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_customer_city
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_city is missing (true = missing).
+          📊 Used to track completeness of customer city in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_customer_city
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_city is duplicate (true = duplicate).
+          📊 Used to identify duplicate customer city in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: customer_state
+        description: >
+          🗺️ State of the customer in Brazil (2-letter).
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Used for revenue by state chart.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_missing_customer_state
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_state is missing (true = missing).
+          📊 Used to retain rows with incomplete customer_state in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: is_duplicate_customer_state
+        description: >
+          🟢 / 🔴 Boolean flag to indicate customer_state is duplicate (true = duplicate).
+          📊 Used to identify duplicate customer state in `stg_customers` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error

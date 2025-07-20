@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "order_payments"]
+    tables:
+      - name: order_payments
+        description: >
+          Raw data capturing payment details for each order.
+          Each row represents one payment attempt for an order.
+          One order can have multiple payments (e.g., split over credit card installments).
+
+        columns:
+          - name: order_id
+            description: >
+              🔑 Foreign key referencing the order. Allow duplicate due to one order can be paid multiple times.
+              🎯 Expected: varchar, not null.
+              📊 Used to associate payments with specific orders.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: payment_sequential
+            description: >
+              🔢 Sequence number of this payment for the order. Must at least 1 due to no one buy without paid. 
+              🎯 Expected: int, min 1, not null.
+              📊 Indicates the order of multiple payment transactions for the same order.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: payment_type
+            description: >
+              💳 Payment method used (e.g., credit_card, boleto, voucher).
+                  Can disscuss with DA/DS to filter specific payment_type or they will handle in mart.
+              🎯 Expected: varchar, not null.
+              📊 Useful for analysis of popular payment methods.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: payment_installments
+            description: >
+              🧾 Number of installments chosen by the customer. If the customer pays in full at once time, it will be 0.
+              🎯 Expected: int, min 0, not null.
+              📊 Helps track customer preferences for installment-based payments.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: payment_value
+            description: >
+              💰 Monetary amount of the payment (in BRL). Payment value can be 0 in cases such as full voucher use or order cancellation.
+              🎯 Expected: int, min 0.00, not null.
+              📊 Used in calculating order revenue.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              name: row_count_check_order_payments
+              min_value: 1000
+              severity: warn

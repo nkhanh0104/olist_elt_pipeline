@@ -1,0 +1,95 @@
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+    AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION: ${AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION}
+    AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+    AIRFLOW_UID: ${AIRFLOW_UID}
+    AIRFLOW_GID: ${AIRFLOW_GID}
+    # Snowflake env for dbt
+    SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
+    SNOWFLAKE_USER: ${SNOWFLAKE_USER}
+    SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
+    SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE}
+    SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE}
+    SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE}
+    SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA}
+    SNOWFLAKE_ENV: ${SNOWFLAKE_ENV}
+    # Elementary env for dbt
+    ELEMENTARY_ACCOUNT: ${ELEMENTARY_ACCOUNT}
+    ELEMENTARY_USER: ${ELEMENTARY_USER}
+    ELEMENTARY_PASSWORD: ${ELEMENTARY_PASSWORD}
+    ELEMENTARY_DATABASE: ${ELEMENTARY_DATABASE}
+    ELEMENTARY_SCHEMA: ${ELEMENTARY_SCHEMA}
+    ELEMENTARY_WAREHOUSE: ${ELEMENTARY_WAREHOUSE}
+    ELEMENTARY_ROLE: ${ELEMENTARY_ROLE}
+    ELEMENTARY_ENV: ${ELEMENTARY_ENV}
+  env_file:
+    - .env
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/data
+    - ./extract_load:/opt/airflow/extract_load
+    - ./logs:/opt/airflow/logs
+    - ./ingest_all.sh:/opt/airflow/ingest_all.sh
+    - ./scripts:/opt/airflow/scripts
+    - ./olist_elt_pipeline:/opt/airflow/olist_elt_pipeline
+  user: "${AIRFLOW_UID}:${AIRFLOW_GID}"
+  depends_on:
+    - postgres
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow_scheduler
+    command: scheduler
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow_init
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        /home/airflow/.local/bin/airflow db init && \
+        /home/airflow/.local/bin/airflow users create \
+          --username ${AIRFLOW_USER} \
+          --password ${AIRFLOW_PASSWORD} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email ${AIRFLOW_EMAIL}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

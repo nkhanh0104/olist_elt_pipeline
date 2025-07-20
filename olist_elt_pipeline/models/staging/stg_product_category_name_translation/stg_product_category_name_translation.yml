@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_product_category_name_translation
+    description: >
+      Staging model for product_category_name_translation.
+      This table has been casted and cleaned from the raw source.
+      Each row represents a unique product category and its English translation.
+      Used to enrich product information in mart models.
+    tags: ["staging", "product_category_translation"]
+    columns:
+      - name: product_category_name
+        description: >
+          📝 Unique identifier for each product category name in Portuguese.
+          🎯 Expected: varchar, not null, unique.
+          📊 Used as the primary key and foreign key in `stg_products`.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: is_duplicate_product_category_name
+        description: >
+          🟢 / 🔴 Boolean flag to indicate product_category_name is duplicate (true = duplicate).
+          📊 Used to identify duplicate product category name in `stg_product_category_name_translation` for DA/DS handle in mart.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error
+
+      - name: product_category_name_english
+        description: >
+          📝 Translated product category name in English.
+          🎯 Expected: varchar, not null.
+          📊 Used to measure time between purchase and approval for operational KPIs.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error

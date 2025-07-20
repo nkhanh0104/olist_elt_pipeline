@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: fct_daily_payment_trends
+    description: >
+      💳 Fact table summarizing the popularity and revenue of different payment types over time.
+      📊 Supports filtering by year, quarter, month, and day for time-based trends.
+      🔁 Each row represents a payment method on a specific date.
+    tags: ["fact", "daily_payment_trends"]
+    columns:
+      - name: payment_type
+        description: >
+          💳 Payment method used (e.g., credit_card, boleto, voucher).
+          🎯 Expected: not null.
+          📊 Used to analyze customer behavior and preferred payment options.
+        tests:
+          - not_null:
+              severity: error
+
+      - name: date_day
+        description: >
+          📅 The specific calendar date of the transaction.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: date, not null, unique.
+          📊 Used as the base time dimension for grouping revenue.
+
+      - name: year
+        description: >
+          🔢 Year extracted from `date_day` of the transaction.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 2016, max 2018.
+          📊 Supports filtering and grouping charts by year.
+
+      - name: month
+        description: >
+          🔢 Month (1 to 12) extracted from `date_day` of the transaction.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 1, max 12.
+          📊 Supports grouping by month or monthly trends.
+
+      - name: quarter
+        description: >
+          🔢 Quarter (1 to 4) extracted from `date_day` of the transaction.
+              Already strictly validated in `dim_dates`.
+          🎯 Expected: int, not null, min 1, max 4.
+          📊 Used in charts grouped by quarter.
+
+      - name: total_orders
+        description: >
+          🔢 Total number of unique orders using the payment method on that day.
+          🎯 Expected: int, not null, min 1.
+          📊 Key metric for measuring popularity of each payment type.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+
+      - name: total_revenue
+        description: >
+          💰 Total revenue collected via the payment method on that day.
+          🎯 Expected: numeric(38, 2), not null, min 0.00.
+          📊 Helps compare payment types based on value generated.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error

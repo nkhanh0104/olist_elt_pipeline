@@ -1,0 +1,24 @@
+version: 2
+
+macros:
+  - name: flaging.flag_duplicate_column
+    description: >
+      🟢 / 🔴 Return a boolean column indicating whether a value appears more than once in the dataset (i.e. is duplicated).
+
+      📌 Best practice:
+        - Use inside SELECT clause to flag anomalies in dimension keys or reference columns.
+        - Add alias name for clearer schema and downstream data validation.
+        - Combine with `flag_missing_column` to ensure full anomaly detection.
+
+      🧠 Typical usage:
+        {{ flag_duplicate_column('customer_city') }}
+        {{ flag_duplicate_column('customer_state', 'is_duplicate_state') }}
+    tags: ["flag", "duplicate", "data_quality", "macro_utils"]
+    arguments:
+      - name: column_name
+        type: string
+        description: 🟨 Column to check for duplicate values (using COUNT OVER PARTITION).
+
+      - name: alias_name
+        type: string (optional)
+        description: 🏷️ Optional. Alias for the output column. Default `is_duplicate_<column_name>`.

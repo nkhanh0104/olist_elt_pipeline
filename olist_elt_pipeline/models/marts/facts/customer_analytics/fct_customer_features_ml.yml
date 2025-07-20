@@ -1,0 +1,139 @@
+version: 2
+
+models:
+  - name: fct_customer_features_ml
+    description: >
+      🧠 Feature table used for churn prediction ML models.
+      📦 Each row represents a **real customer** (`customer_unique_id`).
+      📊 Aggregates customer behavior including recency, frequency, monetary value, account count, and churn status.
+    tags: ["fact", "ml", "churn", "customer_features"]
+    columns:
+      - name: customer_unique_id
+        description: >
+          🔐 Unique identifier for a real customer (can own multiple accounts).
+          🎯 Expected: varchar, not null, unique.
+          📊 Primary key for ML features.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: first_purchase_date
+        description: >
+          📅 Date of the customer's first order.
+          🎯 Expected: date, not null.
+          📊 Used for lifetime value calculations.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date
+              severity: error
+
+      - name: last_purchase_date
+        description: >
+          📅 Date of the customer's most recent valid order (`delivered` or `shipped`).
+          🎯 Expected: date, not null.
+          📊 Used to calculate recency and churn status.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date
+              severity: error
+
+      - name: total_orders
+        description: >
+          🔢 Number of distinct orders placed by the customer.
+          🎯 Expected: int, not null, min 1.
+          📊 "F" in RFM — purchase frequency.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+
+      - name: total_accounts
+        description: >
+          👥 Number of `customer_id` accounts linked to this `customer_unique_id`.
+          🎯 Expected: int, not null, min 1.
+          📊 Detects multi-account behavior or segmentation by identity.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+
+      - name: total_revenue
+        description: >
+          💰 Total revenue generated across all orders.
+          🎯 Expected: numeric(38,2), not null, min 0.00.
+          📊 "M" in RFM — monetary value.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,2) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error
+
+      - name: avg_revenue_per_order
+        description: >
+          📊 Average revenue per order.
+          🎯 Expected: numeric(38,8), not null, min 0.00.
+          📊 Helps distinguish high-value vs low-value customers.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,8) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error
+
+      - name: days_since_last_order
+        description: >
+          📆 Number of days since the customer's last order until `data_max_date`.
+              This is recency days and the last purchase date is the lat purchase date in dataset this column value will be 0.
+          🎯 Expected: int, not null, min 0.
+          📊 Used as the "R" in RFM.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(9,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              severity: error
+
+      - name: is_churned
+        description: >
+          ❌ Label indicating whether the customer is considered **churned**.
+          🧮 Logic: `recency_days > 60` → true (churned), else false.
+          📊 Target variable for supervised ML models.
+          🎯 Expected: boolean, not null.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: [true, false]
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: boolean
+              severity: error

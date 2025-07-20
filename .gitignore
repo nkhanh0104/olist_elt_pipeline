@@ -1,0 +1,29 @@
+# Ignore environment files
+.env
+.env.*
+
+# Ignore DBT profiles
+profiles.yml
+
+# Ignore logs and sytem files
+logs/
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+
+# Ignore VSCode
+.vscode/
+
+# Ignore Python virtual env
+.venv/
+venv/
+
+# Ignore DBT build artifacts
+target/
+dbt_packages/
+
+# Ignore Elementary output
+edr_target/
+olist_elt_pipeline/package-lock.yml
+olist_elt_pipeline/.user.yml

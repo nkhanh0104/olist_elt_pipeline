@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: dim_customer_location
+    description: >
+      Dimension table for customer location (city & state).
+      Built from `stg_customers`. Provides a cleaned list of customer cities and states, 
+      with missing value flags retained for downstream analysis and ML.
+    tags: ["dim", "customer_location"]
+    columns:
+      - name: customer_id
+        description: >
+          🔑 Surrogate key generated from customer_city and customer_state.
+          🎯 Expected: varchar, not null, unique.
+          📊 Used in fact models for location-based joins.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: customer_unique_id
+        description: >
+          🔐 Natural key for a real-world customer. Allow duplicate due to one customer can have multiple accounts.
+          🎯 Expected: varchar, not null.
+          📊 Used for customer-level analytics (e.g., lifetime value, churn).
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: customer_city
+        description: >
+          🏙️ City of the customer in Brazil.
+              Just warning not null DA/DS will handle in fact.
+          🎯 Expected: varchar, not null.
+          📊 Used in geographic analysis such as churn by city, delivery time by region, or customer concentration maps.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: customer_state
+        description: >
+          🗺️ State of the customer in Brazil (2-letter).
+              Just warning not null DA/DS will handle in mart.
+          🎯 Expected: varchar, not null.
+          📊 Used in regional revenue reports and customer churn analysis.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error

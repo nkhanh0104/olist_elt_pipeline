@@ -1,0 +1,106 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "products"]
+    tables:
+      - name: products
+        description: >
+          Raw product catalog from Olist. Each row represents a unique product available on the platform.
+          Product information includes physical dimensions and the associated category.
+
+        columns:
+          - name: product_id
+            description: >
+              🔐 Primary key representing a unique product.
+              🎯 Expected: varchar, not null, unique.
+              📊 Used as the primary key and foreign key in `stg_order_items`.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: product_category_name
+            description: >
+              🗂️ Text identifier for the product's category in Portuguese.
+              🎯 Expected: varchar, not null.
+              📊 Used to group products by category and join with translated category names.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_name_lenght
+            description: >
+              🗂️ Length of the product name.
+              🎯 Expected: int, min 1, not null.
+              📊 Used to identify length of the product name.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_description_lenght
+            description: >
+              🗂️ Length of the product description.
+              🎯 Expected: int, min 1, not null.
+              📊 Used to identify length of the product description.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_photos_qty
+            description: >
+              📷 Number of product images available.
+              🎯 Expected: int, min 1, not null.
+              📊 Used to understand how product presentation might affect sales.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_weight_g
+            description: >
+              ⚖️ Product weight in grams.
+              🎯 Expected: int, min 1, not null.
+              📊 Used for shipping cost estimation and inventory handling.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_length_cm
+            description: >
+              📏 Length of the product in centimeters.
+              🎯 Expected: int, min 1, not null.
+              📊 Used for logistics and volumetric calculations.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_height_cm
+            description: >
+              📐 Height of the product in centimeters.
+              🎯 Expected: int, min 1, not null.
+              📊 Used for box sizing and inventory management.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: product_width_cm
+            description: >
+              📦 Width of the product in centimeters.
+              🎯 Expected: int, min 1, not null.
+              📊 Used for packaging and delivery planning.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              name: expect_products_row_count
+              min_value: 1000
+              severity: warn

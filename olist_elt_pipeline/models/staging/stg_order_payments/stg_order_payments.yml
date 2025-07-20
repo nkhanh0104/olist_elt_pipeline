@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: stg_order_payments
+    description: >
+      Staging model for order payments. This table has been casted and cleaned from the raw source.
+      Each row represents a single payment attempt for a given order.
+      Used to analyze payment behaviors such as method popularity, installment trends, and total order payment value.
+    tags: ["staging", "order_payments"]
+    columns:
+      - name: order_id
+        description: >
+          🔑 Foreign key referencing the order. Allow duplicate due to one order can be paid multiple times.
+          🎯 Expected: varchar, not null, relationship to `stg_orders` table with `order_id` column.
+          📊 Used to associate payments with specific orders.
+        tests:
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: payment_sequential
+        description: >
+          🔢 Sequence number of this payment for the order. Must at least 1 due to no one buy without paid. 
+          🎯 Expected: int, min 1, not null.
+          📊 Indicates the order of multiple payment transactions for the same order.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+
+      - name: payment_type
+        description: >
+          💳 Payment method used (e.g., credit_card, boleto, voucher).
+          🎯 Expected: varchar, not null.
+          📊 Useful for analysis of popular payment methods.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: payment_installments
+        description: >
+          🧾 Number of installments chosen by the customer. If the customer pays in full at once time, it will be 0.
+          🎯 Expected: int, min 0, not null.
+          📊 Helps track customer preferences for installment-based payments.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+
+      - name: payment_value
+        description: >
+          💰 Monetary amount of the payment (in BRL). Payment value can be 0 in cases such as full voucher use or order cancellation.
+          🎯 Expected: int, min 0.00, not null.
+          📊 Used in calculating order revenue.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.00
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(18,2) ).
+              severity: error

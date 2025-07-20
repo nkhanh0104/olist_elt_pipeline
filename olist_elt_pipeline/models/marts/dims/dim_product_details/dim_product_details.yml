@@ -1,0 +1,197 @@
+version: 2
+
+models:
+  - name: dim_product_details
+    description: >
+      Dimension model for product details. Built from `stg_products` and enriched by joining with the 
+      `stg_product_category_name_translation` table to get English names. Each row represents a unique product 
+      with relevant features and missing value flags. 🧠 Used in product-level analysis and ML models 
+      such as churn prediction or top-selling products.
+    tags: ["dim", "product_details"]
+    columns:
+      - name: product_id
+        description: >
+          🔐 Primary key representing a unique product.
+          🎯 Expected: varchar, not null, unique.
+          📊 Used to join with fact tables for product-level analysis.
+        tests:
+          - not_null:
+              severity: error
+          - unique:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: product_category_name
+        description: >
+          🗂️ The product's category in Portuguese.
+              If null, it's set to `Others` for better join reliability and consistent labeling. 
+          🎯 Expected: varchar, not null.
+          📊 Used to trace or data audit.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: product_category_name_english
+        description: >
+          📝 Translated product category name in English.
+              If translation is missing, falls back to the original category name.
+          🎯 Expected: varchar, not null.
+          📊 Used in reports and charts for human-friendly labeling.
+        tests:
+          - not_null:
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: varchar # Must match with data type in Snowflake but not include length (e.g., ❌ varchar(16777216) ).
+              severity: error
+
+      - name: product_name_length
+        description: >
+          🗂️ Length of the product name.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in fact models and ML pipeline to measure name informativeness.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_description_length
+        description: >
+          🗂️ Length of the product description.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in ML and data completeness metrics.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_photos_qty
+        description: >
+          📷 Number of product images available.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in modeling how visual assets influence buyer behavior.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_weight_g
+        description: >
+          ⚖️ Product weight in grams.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in logistic cost models and fact revenue estimations.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_length_cm
+        description: >
+          📏 Length of the product in centimeters.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in packaging and volumetric calculations in fact.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_height_cm
+        description: >
+          📐 Height of the product in centimeters.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in fact models or ML pipeline related to product volume.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: product_width_cm
+        description: >
+          📦 Width of the product in centimeters.
+              Just warning not null and min DA/DS will handle in fact.
+          🎯 Expected: int, min 1, not null.
+          📊 Used in shipping volume models and fact.
+        tests:
+          - not_null:
+              severity: warn
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number # Must match with data type in Snowflake but not include length (e.g., ❌ number(38,0) ).
+              severity: error
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              severity: warn
+
+      - name: is_missing_product_name_length
+        description: >
+          🟢/🔴 Flag indicating missing product_name_length.
+          📊 Used in fact tables or ML pipelines to trace data quality issues.
+
+      - name: is_missing_product_description_length
+        description: >
+          🟢/🔴 Flag indicating missing product_description_length.
+          📊 Useful for monitoring content completeness in mart layer.
+
+      - name: is_missing_product_photos_qty
+        description: >
+          🟢/🔴 Flag for missing product_photos_qty.
+          📊 Applied in churn prediction and product listing quality analysis.
+
+      - name: is_missing_product_weight_g
+        description: >
+          🟢/🔴 Flag for missing product_weight_g.
+          📊 Used to avoid errors in logistic calculations and ML features.
+
+      - name: is_missing_product_length_cm
+        description: >
+          🟢/🔴 Flag for missing product_length_cm.
+          📊 Traced in ML pipelines and mart models for completeness audit.
+
+      - name: is_missing_product_height_cm
+        description: >
+          🟢/🔴 Flag for missing product_height_cm.
+          📊 Used in product packaging volume analysis or anomaly detection.
+
+      - name: is_missing_product_width_cm
+        description: >
+          🟢/🔴 Flag for missing product_width_cm.
+          📊 Applied in downstream mart for dimensional modeling or alerts.

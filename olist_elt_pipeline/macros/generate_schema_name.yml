@@ -1,0 +1,26 @@
+version: 2
+
+macros:
+  # This macro dynamically generates the schema name for dbt resources based on configuration rules.
+  # Note: Do not change the name of this macro as it is used in dbt_project.yml and also don't need namespace before macro name.
+  - name: generate_schema_name
+    description: >
+      🎯 Dynamically generate the schema name for a dbt resource (model, seed, snapshot)
+      based on defined configuration rules. Helps organize resources into logical schemas
+      for better structure, modularity, and CI/CD hygiene.
+
+      🧠 Order of precedence:
+        1. Custom schema explicitly defined in the resource (e.g. `+schema:` or `config(schema=...)`)
+        2. Exception: `dbt_project_evaluator_exception` gets its own schema
+        3. Package-specific: resources from `dbt_project_evaluator` get their own schema
+        4. Package-specific: resources from `elementary` get their own schema
+        5. Default fallback to `target.schema` (as defined in dbt profile)
+    tags: ["macros", "environment", "organization", "dbt_profiles"]
+    arguments:
+      - name: custom_schema_name
+        type: string
+        description: 🎯 Schema explicitly defined via config. If none is set, falls back to rule-based logic.
+
+      - name: node
+        type: object
+        description: 🎯 The current dbt node (model, seed, etc.) being processed — includes name, type, and package metadata.

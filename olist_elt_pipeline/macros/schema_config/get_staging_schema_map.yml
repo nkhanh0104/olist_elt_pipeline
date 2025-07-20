@@ -1,0 +1,28 @@
+version: 2
+
+macros:
+  - name: get_staging_schema_map
+    description: >
+      🎯 Centralized utility to retrieve staging schema mappings (types and aliases) for source tables.
+      Supports standardized casting and renaming across staging models by returning a predefined schema map.
+
+      📌 Best practice:
+        - Define all schema maps in one place to ensure type consistency across the project.
+        - Use in conjunction with `cast_columns_from_schema` for dynamic SQL generation.
+        - Ensure `table_name` exists in the internal mapping dictionary to avoid runtime errors.
+
+    tags: ["schema_map", "casting", "staging", "column_standardization"]
+    arguments:
+      - name: table_name
+        type: string
+        description: >
+          🎯 The source table name to retrieve the schema map for (e.g., `"customers"`, `"orders"`).
+          Must match a key in the predefined dictionary.
+
+    returns:
+      type: dictionary
+      description: >
+        🎯 Dictionary mapping column names to type definitions. Supports:
+          - Simple string: `'column': 'type'`
+          - Nested format: `'column': {'type': 'type', 'alias': 'new_name'}`
+        🚨 Raises an error if `table_name` is not in the internal mapping.

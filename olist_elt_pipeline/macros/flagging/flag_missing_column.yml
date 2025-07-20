@@ -1,0 +1,24 @@
+version: 2
+
+macros:
+  - name: flagging.flag_missing_column
+    description: >
+      🟢 / 🔴 Return a boolean column to indicate whether the specified column is NULL.
+
+      📌 Best practice:
+        - Use inside SELECT clause to flag missing values.
+        - Add alias name for clearer schema and docs.
+        - Combine with flag_duplicate_column for full anomaly flagging.
+
+      🧠 Typical usage:
+        {{ flag_missing_column('customer_zip_code_prefix') }}
+        {{ flag_missing_column('customer_state', 'is_missing_state') }}
+    tags: ["flag", "missing", "data_quality", "macro_utils"]
+    arguments:
+      - name: column_name
+        type: string
+        description: 🟨 Column name to check NULL on.
+
+      - name: alias_name
+        type: string (optional)
+        description: 🏷️ Optional. Alias for the output column. Default `is_missing_<column_name>`.

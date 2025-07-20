@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  # Olist raw data source name and it will be used as schema name when dbt compiles
+  # the models in case there is no schema specified in the model config.
+  - name: raw
+    description: >
+      Raw ingested data from the Olist e-commerce platform.
+      These tables are loaded via PySpark from CSV files into Snowflake.
+      No business logic is applied at this layer.
+    tags: ["raw", "source", "customers"]
+    tables:
+      - name: customers
+        description: >
+          Raw customer data from Olist CSV files. Each row represents a customer account.
+          A real-world customer can have multiple accounts linked via the same customer_unique_id.
+
+        columns:
+          - name: customer_id
+            description: >
+              🔑 Surrogate key for a customer account.
+              🎯 Expected: varchar, not null and unique.
+              📊 Used as the foreign key in `orders`.
+            tests:
+              - not_null:
+                  severity: warn
+              - unique:
+                  severity: warn
+
+          - name: customer_unique_id
+            description: >
+              🔐 Natural key for a real-world customer. Allow duplicate due to one customer can have multiple accounts.
+              🎯 Expected: varchar, not null.
+              📊 Used for customer-level analytics (e.g., lifetime value, churn).
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: customer_zip_code_prefix
+            description: >
+              📮 First 5 digits of the customer's ZIP code.
+              🎯 Expected: varchar, not null (mostly), may have missing values.
+              📊 Historically used for geolocation, but redundant due to city/state already here.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: customer_city
+            description: >
+              🏙️ City of the customer in Brazil.
+              🎯 Expected: varchar, not null.
+              📊 Used for location-based segmentation and analytics.
+            tests:
+              - not_null:
+                  severity: warn
+
+          - name: customer_state
+            description: >
+              🗺️ State of the customer in Brazil (2-letter).
+              🎯 Expected: varchar, not null.
+              📊 Used for regional-level business reporting.
+            tests:
+              - not_null:
+                  severity: warn
+
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              name: row_count_check_customers
+              min_value: 1000
+              severity: warn
