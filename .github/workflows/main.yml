@@ -109,7 +109,20 @@ jobs:
           echo "Airflow environment deployed."
 
           echo "Waiting for Airflow services to be ready..."
-          sleep 30 # Adjust the wait time if needed
+          # Loop to check webserver health
+          for i in $(seq 1 20); do # Try up to 20 times (wait 10s each time, total 200s)
+            if curl --fail http://localhost:8080/health; then
+              echo "Airflow webserver is ready!"
+              break
+            else
+              echo "Waiting for Airflow webserver... ($i/20)"
+              sleep 10
+            fi
+            if [ $i -eq 20 ]; then
+              echo "Error: Airflow webserver did not become ready in time."
+              exit 1 # Exits with error if not ready after multiple attempts
+            fi
+          done
 
       - name: Initialize Airflow database and create admin user
         run: |
