@@ -97,33 +97,46 @@ jobs:
           mkdir -p ./logs
           chmod -R 777 ./logs # Grant full write permissions to avoid PermissionError
 
+      - name: Start PostgreSQL and Wait for it to be ready # Just start Postgres first
+        run: |
+          echo "Starting PostgreSQL service..."
+          docker compose up -d postgres
+          echo "Waiting for PostgreSQL to be healthy..."
+          for i in $(seq 1 10); do # Try up to 10 times (wait 10s each time, total 100s)
+            if docker compose exec postgres pg_isready -U airflow -d airflow; then
+              echo "PostgreSQL is ready!"
+              break
+            else
+              echo "Waiting for PostgreSQL... ($i/10)"
+              sleep 10
+            fi
+            if [ $i -eq 10 ]; then
+              echo "Error: PostgreSQL did not become ready in time."
+              docker compose logs postgres
+              exit 1
+            fi
+          done
+
       - name: Initialize Airflow database and create admin user
         run: |
-          echo "Initializing Airflow database and creating admin user..."
-          docker compose run --rm airflow-webserver airflow db upgrade
-          docker compose run --rm airflow-webserver airflow users create \
-              --username ${{ vars.AIRFLOW_USER }} \
-              --password ${{ secrets.AIRFLOW_PASSWORD }} \
-              --firstname Admin \
-              --lastname User \
-              --role Admin \
-              --email ${{ vars.AIRFLOW_EMAIL }} || true
+          echo "Initializing Airflow database and creating admin user via airflow-init service..."
+          # Run airflow-init service. It will automatically upgrade db and create user.
+          # This command will block until airflow-init completes.
+          docker compose run --rm airflow-init
           echo "Airflow database initialized and admin user created."
 
-      - name: Deploy Airflow environment
+      - name: Start remaining Airflow services # Start webserver and scheduler
         run: |
-          echo "Deploying Airflow environment using Docker Compose..."
-          # Stop and delete old containers (if any) to ensure clean environment
-          docker compose down -v --rmi all || true
-          # Start Airflow services
-          # GitHub Actions will automatically convert env variables into environment variables
-          # that docker compose can read and replace in docker-compose.yml
-          docker compose up -d
-          echo "Airflow environment deployed."
+          echo "Starting Airflow webserver and scheduler services..."
+          docker compose up -d airflow-webserver airflow-scheduler
+          echo "Airflow webserver and scheduler deployed."
 
-          echo "Waiting for Airflow services to be ready..."
+      - name: Wait for Airflow webserver to be ready
+        run: |
+          echo "Waiting for Airflow webserver to be ready..."
           # Loop to check webserver health
           for i in $(seq 1 20); do # Try up to 20 times (wait 10s each time, total 200s)
+            # Execute curl INSIDE the webserver container to check health.
             if docker compose exec airflow-webserver curl --fail http://localhost:8080/health; then 
               echo "Airflow webserver is ready!"
               break
@@ -133,11 +146,7 @@ jobs:
             fi
             if [ $i -eq 20 ]; then
               echo "Error: Airflow webserver did not become ready in time."
-              # Print out webserver log for debugging
-              echo "--- Airflow Webserver Logs ---"
-              docker compose logs airflow-webserver
-              echo "--- End Airflow Webserver Logs ---"
-              exit 1 # Thoát với lỗi nếu không sẵn sàng sau nhiều lần thử
+              exit 1 # Exit with error if not ready after multiple tries
             fi
           done
 
