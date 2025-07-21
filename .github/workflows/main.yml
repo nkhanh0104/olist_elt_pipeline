@@ -111,7 +111,7 @@ jobs:
           echo "Waiting for Airflow services to be ready..."
           # Loop to check webserver health
           for i in $(seq 1 20); do # Try up to 20 times (wait 10s each time, total 200s)
-            if curl --fail http://localhost:8080/health; then
+            if curl --fail http://airflow-webserver:8080/health; then # Use service name to access
               echo "Airflow webserver is ready!"
               break
             else
