@@ -5,7 +5,7 @@ name: Airflow CI/CD Pipeline
 on:
   push:
     branches:
-      - main # Run workflow when there is a push to the 'main' branch
+      - master # Run workflow when there is a push to the 'master' branch
 
 # Define global environment variables for the workflow
 # These variables will be available to all jobs.
@@ -21,7 +21,7 @@ env:
   # Airflow configuration variables (used in docker-compose.yml)
   AIRFLOW__CORE__EXECUTOR: ${{ vars.AIRFLOW__CORE__EXECUTOR }}
   AIRFLOW__CORE__FERNET_KEY: ${{ secrets.AIRFLOW__CORE__FERNET_KEY }}
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${{ secrets.AIRFLOW__DATABASE__SQL_ALCHEMY_CONN }}
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${{ secrets.AIRFLOW__DATABASE__SQL_ALCHEMY_CONN }}s
   AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION: ${{ vars.AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION }}
   AIRFLOW__CORE__LOAD_EXAMPLES: ${{ vars.AIRFLOW__CORE__LOAD_EXAMPLES }}
   AIRFLOW_UID: ${{ vars.AIRFLOW_UID }}
