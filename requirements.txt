@@ -6,7 +6,8 @@ pandas==2.2.2
 dbt-core==1.9.2
 dbt-snowflake==1.9.2
 snowflake-connector-python==3.15.0
-protobuf==5.29.0
+# protobuf==5.29.0
+protobuf==3.20.3
 cffi==1.15.1
 cryptography==41.0.7
 requests==2.32.4
