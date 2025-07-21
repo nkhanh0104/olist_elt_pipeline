@@ -92,6 +92,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set permissions for Airflow logs directory # Create and grant permissions to the logs folder
+        run: |
+          mkdir -p ./logs
+          chmod -R 777 ./logs # Grant full write permissions to avoid PermissionError
+
       - name: Deploy Airflow environment
         run: |
           echo "Deploying Airflow environment using Docker Compose..."
