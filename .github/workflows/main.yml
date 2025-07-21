@@ -156,25 +156,6 @@ jobs:
             fi
           done
 
-    environment:
-      name: production
-      url: http://localhost:8080/ # Replace with your actual Airflow URL
-
-  # Job to set the Airflow Variables
-  set-airflow-variables:
-    runs-on: ubuntu-latest
-    needs: deploy-airflow-environment # Make sure this job runs after the Airflow environment has been deployed
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set Airflow Variables
         run: |
           echo "Setting Airflow Variables from GitHub Actions Variables/Secrets..."
@@ -207,13 +188,27 @@ jobs:
           docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_WAREHOUSE "$SNOWFLAKE_WAREHOUSE" --replace
           echo "All Airflow Variables set successfully."
 
+    environment:
+      name: production
+      url: http://localhost:8080/ # Replace with your actual Airflow URL
+
   # Job to create and upload Elementary Report
   generate-and-upload-elementary-report:
     runs-on: ubuntu-latest
-    needs: set-airflow-variables # Make sure the Airflow variables are set
+    needs: deploy-airflow-environment # Make sure the Airflow variables are set
+    permissions:
+      pages: write # Permissions required to deploy to GitHub Pages
+      id-token: write # Required for OIDC authentication
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY_URL }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
