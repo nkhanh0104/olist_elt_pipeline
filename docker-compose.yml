@@ -26,9 +26,6 @@ x-airflow-common: &airflow-common
     ELEMENTARY_WAREHOUSE: ${ELEMENTARY_WAREHOUSE}
     ELEMENTARY_ROLE: ${ELEMENTARY_ROLE}
     ELEMENTARY_ENV: ${ELEMENTARY_ENV}
-  # Comment this line out for CI/CD, uncomment for local development if using a .env file
-  # env_file:
-  #   - .env
   volumes:
     - ./dags:/opt/airflow/dags
     - ./data:/opt/airflow/data
