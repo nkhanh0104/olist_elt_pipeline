@@ -119,10 +119,16 @@ jobs:
 
       - name: Initialize Airflow database and create admin user
         run: |
-          echo "Initializing Airflow database and creating admin user via airflow-init service..."
-          # Run airflow-init service. It will automatically upgrade db and create user.
-          # This command will block until airflow-init completes.
-          docker compose run --rm airflow-init
+          echo "Initializing Airflow database and creating admin user..."
+          # Run db upgrade and create user on webserver container
+          docker compose run --rm airflow-webserver airflow db upgrade
+          docker compose run --rm airflow-webserver airflow users create \
+              --username ${{ vars.AIRFLOW_USER }} \
+              --password ${{ secrets.AIRFLOW_PASSWORD }} \
+              --firstname Admin \
+              --lastname User \
+              --role Admin \
+              --email ${{ vars.AIRFLOW_EMAIL }} || true
           echo "Airflow database initialized and admin user created."
 
       - name: Start remaining Airflow services # Start webserver and scheduler
