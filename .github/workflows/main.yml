@@ -303,4 +303,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 # Deploy content to GitHub Pages
+        uses: actions/deploy-pages@v3 # Deploy content to GitHub Pages
