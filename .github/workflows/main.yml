@@ -13,15 +13,13 @@ on:
 env:
   # Variables related to Docker Registry and Airflow Image
   # These values will be taken from GitHub Secrets or GitHub Variables
-  AIRFLOW_IMAGE_NAME: ${{ vars.AIRFLOW_IMAGE_NAME }} # Ex: ghcr.io/your-github-username/your-repo/airflow:latest
-  DOCKER_REGISTRY_USER: ${{ vars.DOCKER_REGISTRY_USER }} # Can be vars if not too sensitive, or secrets if it's a shared account
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  AIRFLOW_IMAGE_NAME: ghcr.io/${{ github.repository }}/airflow:latest # Ex: ghcr.io/your-github-username/your-repo/airflow:latest
   DOCKER_REGISTRY_URL: ${{ vars.DOCKER_REGISTRY_URL }} # Ex: ghcr.io
 
   # Airflow configuration variables (used in docker-compose.yml)
   AIRFLOW__CORE__EXECUTOR: ${{ vars.AIRFLOW__CORE__EXECUTOR }}
   AIRFLOW__CORE__FERNET_KEY: ${{ secrets.AIRFLOW__CORE__FERNET_KEY }}
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${{ secrets.AIRFLOW__DATABASE__SQL_ALCHEMY_CONN }}s
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${{ secrets.AIRFLOW__DATABASE__SQL_ALCHEMY_CONN }}
   AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION: ${{ vars.AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION }}
   AIRFLOW__CORE__LOAD_EXAMPLES: ${{ vars.AIRFLOW__CORE__LOAD_EXAMPLES }}
   AIRFLOW_UID: ${{ vars.AIRFLOW_UID }}
@@ -66,8 +64,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ env.DOCKER_REGISTRY_USER }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Airflow Docker image
         uses: docker/build-push-action@v5
@@ -89,8 +87,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ env.DOCKER_REGISTRY_USER }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy Airflow environment
         run: |
@@ -134,8 +132,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ env.DOCKER_REGISTRY_USER }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set Airflow Variables
         run: |
