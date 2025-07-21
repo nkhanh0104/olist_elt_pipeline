@@ -56,6 +56,8 @@ jobs:
   # Job to build and push Docker Image to Airflow
   build-airflow-image:
     runs-on: ubuntu-latest # Run on a GitHub-hosted runner
+    permissions: # Grant packages: write permission to this job
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4 # Action to clone repository
@@ -237,3 +239,35 @@ jobs:
           name: elementary-report
           path: ${{ vars.DBT_FOLDER_NAME }}/target/elementary_report.html
           retention-days: 1 # Keep artifact for 1 day to save space
+
+  # Job to deploy Elementary Report to GitHub Pages
+  deploy-github-pages:
+    runs-on: ubuntu-latest
+    needs: generate-and-upload-elementary-report # Depends on the report generation job
+    permissions:
+      pages: write # Permissions required to deploy to GitHub Pages
+      id-token: write # Required for OIDC authentication
+    environment:
+      name: github-pages # Default environment name for GitHub Pages
+      url: ${{ steps.deployment.outputs.page_url }} # GitHub Pages URL after deployment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Elementary Report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: elementary-report
+          path: ./elementary-report # Download artifact to this folder on runner
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5 # Configure GitHub Pages environment
+
+      - name: Upload artifact to Pages
+        uses: actions/upload-pages-artifact@v4 # Specify action to upload artifact to Pages
+        with:
+          path: "./elementary-report" # Path to the folder containing the report HTML file
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Deploy content to GitHub Pages
