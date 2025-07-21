@@ -224,10 +224,10 @@ jobs:
         run: |
           mkdir -p ~/.dbt
           cat <<EOF > ~/.dbt/profiles.yml
-          {{ vars.DBT_PROJECT_NAME }}:
-            target: {{ vars.SNOWFLAKE_ENV }}
+          ${{ vars.DBT_PROJECT_NAME }}:
+            target: ${{ vars.SNOWFLAKE_ENV }}
             outputs:
-              {{ vars.SNOWFLAKE_ENV }}:
+              ${{ vars.SNOWFLAKE_ENV }}:
                 type: snowflake
                 account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
                 user: ${{ secrets.SNOWFLAKE_USER }}
@@ -239,9 +239,9 @@ jobs:
                 threads: 1
                 client_session_keep_alive: False
           elementary: # Profile cho Elementary
-            target: {{ vars.ELEMENTARY_ENV }}
+            target: ${{ vars.ELEMENTARY_ENV }}
             outputs:
-              {{ vars.ELEMENTARY_ENV }}:
+              ${{ vars.ELEMENTARY_ENV }}:
                 type: snowflake
                 account: ${{ secrets.ELEMENTARY_ACCOUNT }}
                 user: ${{ secrets.ELEMENTARY_USER }}
