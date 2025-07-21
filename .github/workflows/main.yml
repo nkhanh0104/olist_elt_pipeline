@@ -1,0 +1,241 @@
+# The name of the workflow, which will be displayed on the GitHub Actions interface
+name: Airflow CI/CD Pipeline
+
+# Defines when this workflow will run
+on:
+  push:
+    branches:
+      - main # Run workflow when there is a push to the 'main' branch
+
+# Define global environment variables for the workflow
+# These variables will be available to all jobs.
+# For sensitive variables, you SHOULD use GitHub Secrets.
+env:
+  # Variables related to Docker Registry and Airflow Image
+  # These values will be taken from GitHub Secrets or GitHub Variables
+  AIRFLOW_IMAGE_NAME: ${{ vars.AIRFLOW_IMAGE_NAME }} # Ex: ghcr.io/your-github-username/your-repo/airflow:latest
+  DOCKER_REGISTRY_USER: ${{ vars.DOCKER_REGISTRY_USER }} # Can be vars if not too sensitive, or secrets if it's a shared account
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  DOCKER_REGISTRY_URL: ${{ vars.DOCKER_REGISTRY_URL }} # Ex: ghcr.io
+
+  # Airflow configuration variables (used in docker-compose.yml)
+  AIRFLOW__CORE__EXECUTOR: ${{ vars.AIRFLOW__CORE__EXECUTOR }}
+  AIRFLOW__CORE__FERNET_KEY: ${{ secrets.AIRFLOW__CORE__FERNET_KEY }}
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${{ secrets.AIRFLOW__DATABASE__SQL_ALCHEMY_CONN }}
+  AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION: ${{ vars.AIRFLOW__CORE__DAGS_PAUSED_AT_CREATION }}
+  AIRFLOW__CORE__LOAD_EXAMPLES: ${{ vars.AIRFLOW__CORE__LOAD_EXAMPLES }}
+  AIRFLOW_UID: ${{ vars.AIRFLOW_UID }}
+  AIRFLOW_GID: ${{ vars.AIRFLOW_GID }}
+  AIRFLOW_USER: ${{ vars.AIRFLOW_USER }}
+  AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
+  AIRFLOW_EMAIL: ${{ vars.AIRFLOW_EMAIL }}
+
+  # Variables for Snowflake and Elementary (set into Airflow Variables)
+  # These variables will be passed into the 'airflow variables set' commands
+  DBT_FOLDER_NAME: ${{ vars.DBT_FOLDER_NAME }}
+  DBT_PROJECT_NAME: ${{ vars.DBT_PROJECT_NAME }}
+  ELEMENTARY_ACCOUNT: ${{ secrets.ELEMENTARY_ACCOUNT }}
+  ELEMENTARY_DATABASE: ${{ vars.ELEMENTARY_DATABASE }}
+  ELEMENTARY_ENV: ${{ vars.ELEMENTARY_ENV }}
+  ELEMENTARY_PASSWORD: ${{ secrets.ELEMENTARY_PASSWORD }}
+  ELEMENTARY_ROLE: ${{ vars.ELEMENTARY_ROLE }}
+  ELEMENTARY_SCHEMA: ${{ vars.ELEMENTARY_SCHEMA }}
+  ELEMENTARY_USER: ${{ secrets.ELEMENTARY_USER }}
+  ELEMENTARY_WAREHOUSE: ${{ vars.ELEMENTARY_WAREHOUSE }}
+  PROJECT_ROOT_DIR_AIRFLOW_VAR: ${{ vars.PROJECT_ROOT_DIR_AIRFLOW_VAR }}
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
+  SNOWFLAKE_ENV: ${{ vars.SNOWFLAKE_ENV }}
+  SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+  SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+  SNOWFLAKE_SCHEMA_MART: ${{ vars.SNOWFLAKE_SCHEMA_MART }}
+  SNOWFLAKE_SCHEMA_RAW: ${{ vars.SNOWFLAKE_SCHEMA_RAW }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+
+# Define jobs in workflow
+jobs:
+  # Job to build and push Docker Image to Airflow
+  build-airflow-image:
+    runs-on: ubuntu-latest # Run on a GitHub-hosted runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Action to clone repository
+
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY_URL }}
+          username: ${{ env.DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Build and push Airflow Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # Path to Dockerfile (current directory)
+          push: true # Push image to registry
+          tags: ${{ env.AIRFLOW_IMAGE_NAME }} # Use image name from environment variable
+          no-cache: true # Ensure completely new build
+
+  # Job to deploy Airflow environment using Docker Compose
+  deploy-airflow-environment:
+    runs-on: ubuntu-latest # Run on a GitHub-hosted runner
+    needs: build-airflow-image # Make sure this job runs after the image has been built
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY_URL }}
+          username: ${{ env.DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Deploy Airflow environment
+        run: |
+          echo "Deploying Airflow environment using Docker Compose..."
+          # Stop and delete old containers (if any) to ensure clean environment
+          docker compose down -v --rmi all || true
+          # Start Airflow services
+          # GitHub Actions will automatically convert env variables into environment variables
+          # that docker compose can read and replace in docker-compose.yml
+          docker compose up -d
+          echo "Airflow environment deployed."
+
+          echo "Waiting for Airflow services to be ready..."
+          sleep 30 # Adjust the wait time if needed
+
+      - name: Initialize Airflow database and create admin user
+        run: |
+          echo "Initializing Airflow database and creating admin user..."
+          docker compose run --rm airflow-webserver airflow db upgrade
+          docker compose run --rm airflow-webserver airflow users create \
+              --username ${{ vars.AIRFLOW_USER }} \
+              --password ${{ secrets.AIRFLOW_PASSWORD }} \
+              --firstname Admin \
+              --lastname User \
+              --role Admin \
+              --email ${{ vars.AIRFLOW_EMAIL }} || true
+          echo "Airflow database initialized and admin user created."
+    environment:
+      name: production
+      url: http://localhost:8080/ # Replace with your actual Airflow URL
+
+  # Job to set the Airflow Variables
+  set-airflow-variables:
+    runs-on: ubuntu-latest
+    needs: deploy-airflow-environment # Make sure this job runs after the Airflow environment has been deployed
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY_URL }}
+          username: ${{ env.DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Set Airflow Variables
+        run: |
+          echo "Setting Airflow Variables from GitHub Actions Variables/Secrets..."
+          # These variables will be provided by GitHub Actions as environment variables
+          # in the container running this job.
+          # We use 'docker compose exec' to run the command on the running webserver container.
+          docker compose exec -T airflow-webserver airflow variables set DBT_FOLDER_NAME "$DBT_FOLDER_NAME" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_PROJECT_NAME "$DBT_PROJECT_NAME" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_DATE "$DBT_VAR_DATE" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_MONTH "$DBT_VAR_MONTH" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_QUARTER "$DBT_VAR_QUARTER" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_YEAR "$DBT_VAR_YEAR" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ACCOUNT "$ELEMENTARY_ACCOUNT" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_DATABASE "$ELEMENTARY_DATABASE" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ENV "$ELEMENTARY_ENV" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_PASSWORD "$ELEMENTARY_PASSWORD" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ROLE "$ELEMENTARY_ROLE" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_SCHEMA "$ELEMENTARY_SCHEMA" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_USER "$ELEMENTARY_USER" --replace
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_WAREHOUSE "$ELEMENTARY_WAREHOUSE" --replace
+          docker compose exec -T airflow-webserver airflow variables set PROJECT_ROOT_DIR_AIRFLOW_VAR "$PROJECT_ROOT_DIR_AIRFLOW_VAR" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ACCOUNT "$SNOWFLAKE_ACCOUNT" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_DATABASE "$SNOWFLAKE_DATABASE" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ENV "$SNOWFLAKE_ENV" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_PASSWORD "$SNOWFLAKE_PASSWORD" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ROLE "$SNOWFLAKE_ROLE" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_MART "$SNOWFLAKE_SCHEMA_MART" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_RAW "$SNOWFLAKE_SCHEMA_RAW" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_USER "$SNOWFLAKE_USER" --replace
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_WAREHOUSE "$SNOWFLAKE_WAREHOUSE" --replace
+          echo "All Airflow Variables set successfully."
+
+  # Job to create and upload Elementary Report
+  generate-and-upload-elementary-report:
+    runs-on: ubuntu-latest
+    needs: set-airflow-variables # Make sure the Airflow variables are set
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10" # Make sure the Python version matches the Airflow Dockerfile
+
+      - name: Install dbt and Elementary
+        run: |
+          pip install dbt-snowflake elementary-data # Install necessary packages
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH # Make sure dbt and edr CLI are in PATH
+
+      - name: Create dbt profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          {{ vars.DBT_PROJECT_NAME }}:
+            target: {{ vars.SNOWFLAKE_ENV }}
+            outputs:
+              {{ vars.SNOWFLAKE_ENV }}:
+                type: snowflake
+                account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+                user: ${{ secrets.SNOWFLAKE_USER }}
+                password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+                role: ${{ vars.SNOWFLAKE_ROLE }}
+                warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+                database: ${{ vars.SNOWFLAKE_DATABASE }}
+                schema: ${{ vars.SNOWFLAKE_SCHEMA_RAW }}
+                threads: 1
+                client_session_keep_alive: False
+          elementary: # Profile cho Elementary
+            target: {{ vars.ELEMENTARY_ENV }}
+            outputs:
+              {{ vars.ELEMENTARY_ENV }}:
+                type: snowflake
+                account: ${{ secrets.ELEMENTARY_ACCOUNT }}
+                user: ${{ secrets.ELEMENTARY_USER }}
+                password: ${{ secrets.ELEMENTARY_PASSWORD }}
+                role: ${{ vars.ELEMENTARY_ROLE }}
+                warehouse: ${{ vars.ELEMENTARY_WAREHOUSE }}
+                database: ${{ vars.ELEMENTARY_DATABASE }}
+                schema: ${{ vars.ELEMENTARY_SCHEMA }}
+                threads: 1
+                client_session_keep_alive: False
+          EOF
+          echo "dbt profiles.yml created."
+
+      - name: Run dbt commands and generate Elementary report
+        run: |
+          set -ex # Print the command and exit if there is an error
+          cd ${{ vars.DBT_FOLDER_NAME }} # Navigate to your dbt project folder
+          dbt deps
+          dbt seed # Run seed if you have seed files
+          dbt run
+          dbt test
+          edr report --profiles-dir ~/.dbt --profile-target ${{ vars.ELEMENTARY_ENV }}
+          echo "Elementary report generated."
+
+      - name: Upload Elementary Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elementary-report
+          path: ${{ vars.DBT_FOLDER_NAME }}/target/elementary_report.html
+          retention-days: 1 # Keep artifact for 1 day to save space
