@@ -162,30 +162,30 @@ jobs:
           # These variables will be provided by GitHub Actions as environment variables
           # in the container running this job.
           # We use 'docker compose exec' to run the command on the running webserver container.
-          docker compose exec -T airflow-webserver airflow variables set DBT_FOLDER_NAME "$DBT_FOLDER_NAME" --replace
-          docker compose exec -T airflow-webserver airflow variables set DBT_PROJECT_NAME "$DBT_PROJECT_NAME" --replace
-          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_DATE "$DBT_VAR_DATE" --replace
-          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_MONTH "$DBT_VAR_MONTH" --replace
-          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_QUARTER "$DBT_VAR_QUARTER" --replace
-          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_YEAR "$DBT_VAR_YEAR" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ACCOUNT "$ELEMENTARY_ACCOUNT" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_DATABASE "$ELEMENTARY_DATABASE" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ENV "$ELEMENTARY_ENV" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_PASSWORD "$ELEMENTARY_PASSWORD" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ROLE "$ELEMENTARY_ROLE" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_SCHEMA "$ELEMENTARY_SCHEMA" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_USER "$ELEMENTARY_USER" --replace
-          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_WAREHOUSE "$ELEMENTARY_WAREHOUSE" --replace
-          docker compose exec -T airflow-webserver airflow variables set PROJECT_ROOT_DIR_AIRFLOW_VAR "$PROJECT_ROOT_DIR_AIRFLOW_VAR" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ACCOUNT "$SNOWFLAKE_ACCOUNT" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_DATABASE "$SNOWFLAKE_DATABASE" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ENV "$SNOWFLAKE_ENV" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_PASSWORD "$SNOWFLAKE_PASSWORD" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ROLE "$SNOWFLAKE_ROLE" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_MART "$SNOWFLAKE_SCHEMA_MART" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_RAW "$SNOWFLAKE_SCHEMA_RAW" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_USER "$SNOWFLAKE_USER" --replace
-          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_WAREHOUSE "$SNOWFLAKE_WAREHOUSE" --replace
+          docker compose exec -T airflow-webserver airflow variables set DBT_FOLDER_NAME "$DBT_FOLDER_NAME"
+          docker compose exec -T airflow-webserver airflow variables set DBT_PROJECT_NAME "$DBT_PROJECT_NAME"
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_DATE "$DBT_VAR_DATE"
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_MONTH "$DBT_VAR_MONTH"
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_QUARTER "$DBT_VAR_QUARTER"
+          docker compose exec -T airflow-webserver airflow variables set DBT_VAR_YEAR "$DBT_VAR_YEAR"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ACCOUNT "$ELEMENTARY_ACCOUNT"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_DATABASE "$ELEMENTARY_DATABASE"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ENV "$ELEMENTARY_ENV"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_PASSWORD "$ELEMENTARY_PASSWORD"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_ROLE "$ELEMENTARY_ROLE"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_SCHEMA "$ELEMENTARY_SCHEMA"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_USER "$ELEMENTARY_USER"
+          docker compose exec -T airflow-webserver airflow variables set ELEMENTARY_WAREHOUSE "$ELEMENTARY_WAREHOUSE"
+          docker compose exec -T airflow-webserver airflow variables set PROJECT_ROOT_DIR_AIRFLOW_VAR "$PROJECT_ROOT_DIR_AIRFLOW_VAR"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ACCOUNT "$SNOWFLAKE_ACCOUNT"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_DATABASE "$SNOWFLAKE_DATABASE"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ENV "$SNOWFLAKE_ENV"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_PASSWORD "$SNOWFLAKE_PASSWORD"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_ROLE "$SNOWFLAKE_ROLE"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_MART "$SNOWFLAKE_SCHEMA_MART"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_SCHEMA_RAW "$SNOWFLAKE_SCHEMA_RAW"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_USER "$SNOWFLAKE_USER"
+          docker compose exec -T airflow-webserver airflow variables set SNOWFLAKE_WAREHOUSE "$SNOWFLAKE_WAREHOUSE"
           echo "All Airflow Variables set successfully."
 
     environment:
