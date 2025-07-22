@@ -297,7 +297,7 @@ jobs:
         uses: actions/configure-pages@v5 # Configure GitHub Pages environment
 
       - name: Upload artifact to Pages
-        uses: actions/upload-pages-artifact@v1 # Specify action to upload artifact to Pages
+        uses: actions/upload-pages-artifact@v3.0.1 # Specify action to upload artifact to Pages
         with:
           path: "./elementary-report" # Path to the folder containing the report HTML file
 
