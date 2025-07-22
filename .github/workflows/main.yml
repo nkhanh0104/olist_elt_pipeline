@@ -263,15 +263,12 @@ jobs:
           dbt seed # Run seed if you have seed files
           dbt run
           dbt test
-          edr report --profiles-dir ~/.dbt --profile-target ${{ vars.ELEMENTARY_ENV }} --output-dir . # force edr report to save the report file to the current directory it is running in
+          edr report --profiles-dir ~/.dbt --profile-target ${{ vars.ELEMENTARY_ENV }}
           echo "Elementary report generated."
-          echo "Listing contents of target directory:"
-          ls -lR target/ # DEBUG STEP: List the contents of the target directory
-          echo "End of target directory listing."
 
       - name: Ensure Elementary report exists # Check for file existence
         run: |
-          REPORT_PATH="${{ vars.DBT_FOLDER_NAME }}/target/elementary_report.html"
+          REPORT_PATH="${{ vars.DBT_FOLDER_NAME }}/edr_target/elementary_report.html"
           if [ ! -f "$REPORT_PATH" ]; then
             echo "Error: Elementary report not found at $REPORT_PATH!"
             exit 1
@@ -282,7 +279,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: elementary-report
-          path: ${{ vars.DBT_FOLDER_NAME }}/target/elementary_report.html
+          path: ${{ vars.DBT_FOLDER_NAME }}/edr_target/elementary_report.html
           retention-days: 1 # Keep artifact for 1 day to save space
 
   # Job to deploy Elementary Report to GitHub Pages
