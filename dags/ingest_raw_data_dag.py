@@ -49,7 +49,7 @@ def ingest_all_raw_data_pipeline():
         task_id='ingest_all_raw_data',
         bash_command=f"""
             set -ex
-            /opt/airflow/ingest_all.sh
+            /opt/airflow/ingest_all.sh 
         """,
         env=snowflake_env_vars
     )
