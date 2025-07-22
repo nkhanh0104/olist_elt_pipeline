@@ -1,4 +1,5 @@
 packages:
+  # dbt version required: >=1.3.0, <2.0.0
   - package: dbt-labs/dbt_utils
     version: 1.3.0
   - package: metaplane/dbt_expectations
@@ -6,7 +7,7 @@ packages:
     # dbt version required: >=1.0.0, <2.0.0
   - package: elementary-data/elementary
     version: 0.19.1
-    # dbt version required: >=1.8.0, <2.0.0
+    # dbt version required: >=1.6.0-rc1, <2.0.0
     # Note: This package is used to track quality of dbt project structure.
   - package: dbt-labs/dbt_project_evaluator
-    version: 1.0.2
+    version: 0.14.3
