@@ -263,7 +263,7 @@ jobs:
           dbt seed # Run seed if you have seed files
           dbt run
           dbt test
-          edr report --profiles-dir ~/.dbt --profile-target ${{ vars.ELEMENTARY_ENV }}
+          edr report --profiles-dir ~/.dbt --profile-target ${{ vars.ELEMENTARY_ENV }} --output-dir . # force edr report to save the report file to the current directory it is running in
           echo "Elementary report generated."
           echo "Listing contents of target directory:"
           ls -lR target/ # DEBUG STEP: List the contents of the target directory
