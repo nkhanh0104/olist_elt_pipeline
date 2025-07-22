@@ -39,8 +39,8 @@ def generate_dates_seed(start_date: str, end_date: str, output_path: str):
 
 if __name__ == "__main__":
    if len(sys.argv) != 4:
-       print(f"🔧 Usage: python generate_dates_seed.py <start_date> <end_date> <output_path>")
-       print(f"📌 Example: python generate_dates_seed.py 2016-01-01 2020-12-31 olist_elt_pipeline/seeds/dim_dates.csv")
+       print(f"🔧 Usage: scripts/python generate_dates_seed.py <start_date> <end_date> <output_path>")
+       print(f"📌 Example: scripts/python generate_dates_seed.py 2016-01-01 2018-12-31 olist_elt_pipeline/seeds/dim_dates.csv")
        sys.exit(1)
    start = sys.argv[1]
    end = sys.argv[2]
