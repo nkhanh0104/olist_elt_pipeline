@@ -25,9 +25,6 @@ clean-targets: # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-flags:
-  require_explicit_package_overrides_for_builtin_materializations: false
-
 on-run-end:
   - "{{ elementary.upload_run_results() }}"
 
