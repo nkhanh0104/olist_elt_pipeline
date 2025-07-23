@@ -75,6 +75,62 @@ This project builds a full-stack data engineering pipeline for Olist's e-commerc
 ---
 
 ## 📅 How to Run
+Prepare your Snowflake by your self or use this command and change your information
+```bash
+-- Use an admin role
+USE ROLE ACCOUNTADMIN;
+
+-- Create the `transform` role
+CREATE ROLE IF NOT EXISTS TRANSFORM;
+GRANT ROLE TRANSFORM TO ROLE ACCOUNTADMIN;
+
+-- Create the default warehouse if necessary
+CREATE WAREHOUSE IF NOT EXISTS COMPUTE_WH;
+GRANT OPERATE ON WAREHOUSE [YOUR_WAREHOUSE] TO ROLE TRANSFORM;
+-- Database use for Olist project
+CREATE OR REPLACE DATABASE [YOUR_DATABSE];
+-- Schemas according to ELT standards
+CREATE OR REPLACE SCHEMA [YOUR_DATABSE].RAW;
+CREATE OR REPLACE SCHEMA [YOUR_DATABSE].STAGING;
+CREATE OR REPLACE SCHEMA [YOUR_DATABSE].MART;
+CREATE OR REPLACE SCHEMA [YOUR_DATABSE].ELEMENTARY;
+CREATE OR REPLACE SCHEMA [YOUR_DATABSE].EVALUATOR;
+
+-- General warehouse computing
+CREATE OR REPLACE WAREHOUSE [YOUR_WAREHOUSE]
+ WITH WAREHOUSE_SIZE = XSMALL
+ AUTO_SUSPEND = 60
+ AUTO_RESUME = TRUE;
+-- Assign permissions (if you create your own user)
+GRANT USAGE ON DATABASE [YOUR_DATABSE] TO ROLE SYSADMIN;
+GRANT USAGE ON WAREHOUSE [YOUR_WAREHOUSE] TO ROLE SYSADMIN;
+GRANT ALL ON SCHEMA [YOUR_DATABSE].RAW TO ROLE SYSADMIN;
+GRANT ALL ON SCHEMA [YOUR_DATABSE].STAGING TO ROLE SYSADMIN;
+GRANT ALL ON SCHEMA [YOUR_DATABSE].MART TO ROLE SYSADMIN;
+GRANT ALL ON SCHEMA [YOUR_DATABSE].ELEMENTARY TO ROLE SYSADMIN;
+GRANT ALL ON SCHEMA [YOUR_DATABSE].EVALUATOR TO ROLE SYSADMIN;
+
+-- Create the `dbt` user and assign to role
+CREATE USER IF NOT EXISTS dbt
+  PASSWORD='[YOUR_PASSWORD]'
+  LOGIN_NAME='[YOUR_USER_NAME]'
+  MUST_CHANGE_PASSWORD=FALSE
+  DEFAULT_WAREHOUSE='[YOUR_WAREHOUSE]'
+  DEFAULT_ROLE=TRANSFORM
+  DEFAULT_NAMESPACE='[YOUR_DATABSE].[YOUR_SCHEMA]'
+  COMMENT='DBT user used for data transformation';
+ALTER USER dbt SET TYPE = LEGACY_SERVICE;
+GRANT ROLE TRANSFORM to USER dbt;
+
+-- Set up permissions to role `transform`
+GRANT ALL ON WAREHOUSE [YOUR_WAREHOUSE] TO ROLE TRANSFORM; 
+GRANT ALL ON DATABASE [YOUR_DATABSE] to ROLE TRANSFORM;
+GRANT ALL ON ALL SCHEMAS IN DATABASE [YOUR_DATABASE] to ROLE TRANSFORM;
+GRANT ALL ON FUTURE SCHEMAS IN DATABASE [YOUR_DATABSE] to ROLE TRANSFORM;
+GRANT ALL ON ALL TABLES IN SCHEMA [YOUR_DATABSE].RAW to ROLE TRANSFORM;
+GRANT ALL ON FUTURE TABLES IN SCHEMA [YOUR_DATABSE].RAW to ROLE TRANSFORM;
+
+```
 
 ### 🚢 Option 1: Run Full Project automatically with GitHub Actions
 
@@ -91,6 +147,7 @@ cd olist_elt_pipeline
 - Go to your repository → olist_elt_pipeline → Settings → Secrets and variables → Action
 - Tab Secrets → New Repository secret
 - Note: See .env.sample for more details
+
 | Repository secrets                      | Description                                                 |
 |-----------------------------------------|-------------------------------------------------------------|
 | AIRFLOW_PASSWORD                        | YOUR_SNOWFLAKE_PASSWORD_HERE                                |
