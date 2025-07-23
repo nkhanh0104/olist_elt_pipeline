@@ -2,11 +2,19 @@
 [![Airflow CI/CD Pipeline](https://github.com/nkhanh0104/olist_elt_pipeline/actions/workflows/main.yml/badge.svg)](https://github.com/nkhanh0104/olist_elt_pipeline/actions/workflows/main.yml)
 [![Elementary Report](https://img.shields.io/badge/Data%20Quality-Elementary-blue)](https://nkhanh0104.github.io/olist_elt_pipeline/elementary_report.html)
 
-An end-to-end production-grade pipeline for ELT + ML on Olist e-commerce dataset using PySpark, Snowflake, dbt, Airflow, and Metabase.
+🚀 A complete Data Engineering pipeline project with:
 
-End-to-end data pipeline for Olist e-commerce data:  
-PySpark → Snowflake → dbt → Airflow → ML → Metabase.  
-Includes CI/CD and Data Quality Monitoring with Elementary.
+✅ PySpark → Snowflake → dbt → Airflow → Metabase → ML  
+✅ Airflow DAGs: ingest raw data, run dbt pipeline, train ML churn model  
+✅ CI/CD with GitHub Actions (run dbt, tests, docs, reports)  
+✅ Data Quality monitoring with dbt-expectations + Elementary  
+✅ End-to-end reproducible setup (Docker, GitHub Actions, Local)
+
+📊 **Analysis & Business Insight included** - with chart-based recommendations [PDF & Metabase Dashboards](#-metabase-dashboards)
+
+📊 [Elementary Report](https://nkhanh0104.github.io/olist_elt_pipeline/elementary_report.html)
+
+📂 [GitHub Repo](https://github.com/nkhanh0104/olist_elt_pipeline)
 
 ---
 
@@ -330,9 +338,12 @@ GitHub Secrets and Variables are used for storing Snowflake credentials and GitH
 
 ## 📈 Metabase Dashboards
 
-- Customer Churn Overview
-- Revenue & Products & Payments Trends
-- Data Quality Monitoring (via Elementary)
+- Revenue & Customer Churn Charts
+  - 📥 [Download Insight PDF](https://github.com/nkhanh0104/olist_elt_pipeline/blob/master/analysis/Metabase%20-%20Olist%20Dashboard%20Revenue.pdf)
+- Products Chart
+  - 📥 [Download Insight PDF](https://github.com/nkhanh0104/olist_elt_pipeline/blob/master/analysis/Metabase%20-%20Olist%20Dashboard%20Products.pdf)
+- Payments Chart
+  - 📥 [Download Insight PDF](https://github.com/nkhanh0104/olist_elt_pipeline/blob/master/analysis/Metabase%20-%20Olist%20Dashboard%20Payments.pdf)
 
 ---
 
